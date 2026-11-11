@@ -1,0 +1,36 @@
+<?php
+/**
+ * db_config.php — Configuración de conexión PDO
+ * Lab 11 · Desarrollo Web · Taller #5
+ *
+ * INSTRUCCIONES DE SEGURIDAD:
+ * - Este archivo NUNCA debe subirse con credenciales reales de producción.
+ * - En XAMPP local, MySQL no tiene contraseña por defecto.
+ * - Incluir con require_once 'db_config.php'; desde cada ejercicio.
+ */
+
+// ─── Parámetros de conexión ───────────────────────────────────────────────────
+define('DB_HOST',    'localhost');
+define('DB_USER',    'root');
+define('DB_PASS',    '');           // Sin contraseña en XAMPP por defecto
+define('DB_NAME',    'tienda_lab11');
+define('DB_CHARSET', 'utf8mb4');
+
+/**
+ * Retorna una conexión PDO configurada.
+ * Lanza PDOException si la conexión falla.
+ *
+ * @return PDO
+ */
+function obtenerConexion(): PDO {
+    $dsn = sprintf(
+        'mysql:host=%s;dbname=%s;charset=%s',
+        DB_HOST, DB_NAME, DB_CHARSET
+    );
+    $opciones = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+    return new PDO($dsn, DB_USER, DB_PASS, $opciones);
+}
