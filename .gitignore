@@ -1,0 +1,20 @@
+# Resultado del autograde (local solamente, no subir)
+resultado_autograde.json
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# PHP
+*.log
+
+# Dependencias (si usaras Composer, que NO debes usar en este lab)
+vendor/
+composer.lock
