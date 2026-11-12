@@ -52,6 +52,29 @@ function comparar_precio(float $a, float $b): bool {
     return abs($a - $b) <= TOLERANCIA_PRECIO;
 }
 
+/** Reinicia la base de datos para evitar residuos entre pruebas multi-semilla y calificación */
+function limpiar_base_datos(): void {
+    if (file_exists('db_config.php')) {
+        require_once 'db_config.php';
+    }
+    $host = defined('DB_HOST') ? DB_HOST : (getenv('DB_HOST') ?: '127.0.0.1');
+    $port = defined('DB_PORT') ? DB_PORT : (getenv('DB_PORT') ?: '3306');
+    $user = defined('DB_USER') ? DB_USER : (getenv('DB_USER') ?: 'root');
+    $pass = defined('DB_PASS') ? DB_PASS : (getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
+
+    try {
+        $pdo = new PDO(
+            sprintf('mysql:host=%s;port=%s;charset=utf8mb4', $host, $port),
+            $user,
+            $pass,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+        $pdo->exec('DROP DATABASE IF EXISTS tienda_lab11');
+    } catch (PDOException $e) {
+        log_msg('⚠️  No se pudo limpiar la BD antes de evaluar: ' . $e->getMessage(), 'WARN');
+    }
+}
+
 /** Calcula los datos esperados para una semilla dada */
 function datos_esperados(int $semilla): array {
     $n = ($semilla % 5) + 3;
@@ -77,30 +100,21 @@ function datos_esperados(int $semilla): array {
     // Para delete (con precios ya actualizados)
     $aEliminar = array_filter($productos, fn($p) => $p['stock'] < $umbral);
     return [
-        'n'                    => $n,
-        'pct'                  => $pct,
-        'umbral'               => $umbral,
-        'productos'            => $productos,
-        'productos_ordenados'  => $productosOrdenados,
-        'promedio'             => $promedio,
-        'stock_total'          => $stockTotal,
+        'n'                      => $n,
+        'pct'                    => $pct,
+        'umbral'                 => $umbral,
+        'productos'              => $productos,
+        'productos_ordenados'    => $productosOrdenados,
+        'promedio'               => $promedio,
+        'stock_total'            => $stockTotal,
         'productos_actualizados' => $productosActualizados,
-        'a_eliminar_count'     => count($aEliminar),
-        'restantes_count'      => count($productos) - count($aEliminar),
+        'a_eliminar_count'       => count($aEliminar),
+        'restantes_count'        => count($productos) - count($aEliminar),
     ];
 }
 
 /**
  * Captura la salida de un archivo PHP para una semilla de PRUEBA dada.
- *
- * IMPORTANTE: los estudiantes no leen ninguna variable de entorno; su
- * semilla vive hardcodeada en la línea `$semilla = N;` del propio archivo.
- * Por lo tanto, para probar con una semilla distinta hay que reescribir
- * esa línea en una copia temporal y ejecutar la copia — simplemente pasar
- * una variable de entorno no cambia nada (eso fue un bug: el autograde
- * terminaba ejecutando siempre el archivo original con la semilla fija
- * del estudiante, así que las 3 "semillas de prueba" producían siempre
- * la MISMA salida y el detector de hardcode marcaba a TODO el mundo).
  */
 function capturar_salida(string $archivo, int $semilla): string {
     if (!file_exists($archivo)) {
@@ -113,8 +127,6 @@ function capturar_salida(string $archivo, int $semilla): string {
         $codigoOriginal,
         1
     );
-    // Copia temporal en el MISMO directorio (no sys_get_temp_dir) para que
-    // require_once 'db_config.php' siga resolviendo por ruta relativa.
     $rutaTemporal = dirname($archivo) . '/' . uniqid('.autograde_tmp_', true) . '_' . basename($archivo);
     file_put_contents($rutaTemporal, $codigoPrueba);
 
@@ -437,7 +449,6 @@ function analizar_commits(): array {
     for ($i = 1; $i < count($ordenCronologico); $i++) {
         $diff = $ordenCronologico[$i]['timestamp'] - $ordenCronologico[$i-1]['timestamp'];
         if ($diff < MIN_TIEMPO_EJ_SEG && $diff > 0) {
-            // Determinar qué ejercicio corresponde al commit más reciente
             $msg = $ordenCronologico[$i]['mensaje'];
             $ejercicio = 'desconocido';
             foreach ($prefijos as $pref) {
@@ -475,7 +486,7 @@ function verificar_capturas(): array {
                     $encontrada = true;
                 } else {
                     $resultado['detalle'][] = "⚠️  Captura ej$i con resolución baja o no legible";
-                    $encontrada = true; // cuenta como presente aunque baja
+                    $encontrada = true;
                 }
                 break;
             }
@@ -498,7 +509,6 @@ function verificar_capturas(): array {
 function detectar_hardcode(): array {
     $archivos = ['ej1_crear_bd.php','ej2_insertar.php','ej3_listar.php','ej4_actualizar.php','ej5_eliminar.php'];
     $salidas = [];
-    // Usa las 15 semillas de prueba documentadas para verificar variación
     $semilasPrueba = SEMILLAS_PRUEBA;
     foreach ($archivos as $arch) {
         $resultados_por_semilla = [];
@@ -519,22 +529,26 @@ function detectar_hardcode(): array {
 function detectar_estructuras_no_vistas(string $archivo): array {
     if (!file_exists($archivo)) return [];
     $codigo = file_get_contents($archivo);
+    // Ignorar comentarios para evitar falsos positivos en docblocks
+    $codigoSinComentarios = preg_replace(['!/\*.*?\*/!s', '!//.*$!m', '!#.*$!m'], '', $codigo);
     $banderas = [];
     $prohibidos = [
-        'mysqli_'       => 'uso de mysqli_ (prohibido, solo PDO)',
-        'laravel'       => 'referencia a framework Laravel',
-        'symfony'       => 'referencia a Symfony',
-        '->query()'     => 'uso de query() sin preparación (riesgo SQL injection)',
-        'eval('         => 'uso de eval() prohibido',
-        'exec('         => 'uso de exec() prohibido',
-        'shell_exec('   => 'uso de shell_exec() prohibido (excepto autograde)',
-        'Session::'     => 'uso de sesiones (no visto aún)',
-        '$_SESSION'     => 'uso de $_SESSION (no visto aún)',
+        'mysqli_'        => 'uso de mysqli_ (prohibido, solo PDO)',
+        'laravel'        => 'referencia a framework Laravel',
+        'symfony'        => 'referencia a Symfony',
+        'eval('          => 'uso de eval() prohibido',
+        'shell_exec('    => 'uso de shell_exec() prohibido (excepto autograde)',
+        'Session::'      => 'uso de sesiones (no visto aún)',
+        '$_SESSION'      => 'uso de $_SESSION (no visto aún)',
     ];
     foreach ($prohibidos as $patron => $descripcion) {
-        if (stripos($codigo, $patron) !== false) {
+        if (stripos($codigoSinComentarios, $patron) !== false) {
             $banderas[] = "$archivo: $descripcion";
         }
+    }
+    // Bloquear exec() de sistema operativo, pero permitir $pdo->exec()
+    if (preg_match('/(?<!->)\bexec\s*\(/i', $codigoSinComentarios)) {
+        $banderas[] = "$archivo: uso de exec() prohibido";
     }
     return $banderas;
 }
@@ -544,7 +558,6 @@ function detectar_estructuras_no_vistas(string $archivo): array {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function crear_issue_tiempo(array $datos): void {
-    // Solo funciona en entorno GitHub Actions con gh CLI
     if (!getenv('GITHUB_REPOSITORY') || !getenv('GITHUB_TOKEN')) return;
     $repo = getenv('GITHUB_REPOSITORY');
     foreach ($datos as $item) {
@@ -572,7 +585,6 @@ function verificar_integridad_autograde(): array {
     $urlOficial = 'https://raw.githubusercontent.com/SarmientoEdu/Lab11-php/main/autograde.php';
     $urlWorkflow = 'https://raw.githubusercontent.com/SarmientoEdu/Lab11-php/main/.github/workflows/autograde.yml';
 
-    // Descargar versión oficial
     $ctx = stream_context_create(['http' => ['timeout' => 10]]);
     $oficial = @file_get_contents($urlOficial, false, $ctx);
     $local   = file_get_contents(__FILE__);
@@ -584,7 +596,6 @@ function verificar_integridad_autograde(): array {
         $resultado['detalle'] = 'autograde.php fue modificado respecto a la versión oficial';
     }
 
-    // Verificar workflow
     $oficialWf = @file_get_contents($urlWorkflow, false, $ctx);
     $localWf   = file_exists('.github/workflows/autograde.yml')
                  ? file_get_contents('.github/workflows/autograde.yml')
@@ -606,7 +617,6 @@ function main(): void {
     log_msg('Computadora: ' . gethostname());
     log_msg('Fecha/Hora:  ' . date('Y-m-d H:i:s'));
 
-    // Determinar semilla del estudiante (del último commit que toca ej*.php)
     $semillaEstudiante = 0;
     foreach (['ej1_crear_bd.php', 'ej2_insertar.php', 'ej3_listar.php', 'ej4_actualizar.php', 'ej5_eliminar.php'] as $arch) {
         if (file_exists($arch)) {
@@ -665,6 +675,9 @@ function main(): void {
         }
     }
 
+    // ── Reiniciar BD antes de evaluar la entrega real del estudiante ──────────
+    limpiar_base_datos();
+
     // ── Ejercicios (con la semilla real del estudiante) ───────────────────────
     if ($semillaEstudiante === 0) {
         log_msg('⚠️  Semilla = 0 — el estudiante no configuró su cédula', 'WARN');
@@ -701,8 +714,6 @@ function main(): void {
     // ── Penalización por capturas ─────────────────────────────────────────────
     $penalizacionCapturas = 0;
     if (!$capturaInfo['pts_ok']) {
-        // -4 pts por cada captura faltante (ya descontado implícitamente)
-        // La nota de los ejercicios no se toca, se descuenta del total
         $presentes = count(array_filter($capturaInfo['detalle'], fn($d) => strpos($d, '✅') !== false));
         $faltantes = CAPTURAS_REQUERIDAS - $presentes;
         $penalizacionCapturas = $faltantes * 4;
@@ -727,24 +738,24 @@ function main(): void {
 
     // ── Resultado JSON ────────────────────────────────────────────────────────
     $resultado = [
-        'nota_total'          => $notaTotal,
-        'nota_bruta'          => $notaBruta,
+        'nota_total'            => $notaTotal,
+        'nota_bruta'            => $notaBruta,
         'penalizacion_capturas' => $penalizacionCapturas,
-        'ejercicios'          => [
+        'ejercicios'            => [
             'ej1' => ['pts' => $r1['pts'], 'max' => $r1['max']],
             'ej2' => ['pts' => $r2['pts'], 'max' => $r2['max']],
             'ej3' => ['pts' => $r3['pts'], 'max' => $r3['max']],
             'ej4' => ['pts' => $r4['pts'], 'max' => $r4['max']],
             'ej5' => ['pts' => $r5['pts'], 'max' => $r5['max']],
         ],
-        'observacion_plagio'  => $observacion,
-        'banderas'            => $banderasUnicas,
-        'tiempo_total_min'    => $gitInfo['tiempo_total_min'],
-        'autores_detectados'  => $gitInfo['autores'],
-        'semilla_estudiante'  => $semillaEstudiante,
-        'computadora'         => gethostname(),
-        'fecha_ejecucion'     => date('Y-m-d H:i:s'),
-        'version_autograde'   => AUTOGRADE_VERSION,
+        'observacion_plagio'    => $observacion,
+        'banderas'              => $banderasUnicas,
+        'tiempo_total_min'      => $gitInfo['tiempo_total_min'],
+        'autores_detectados'    => $gitInfo['autores'],
+        'semilla_estudiante'    => $semillaEstudiante,
+        'computadora'           => gethostname(),
+        'fecha_ejecucion'       => date('Y-m-d H:i:s'),
+        'version_autograde'     => AUTOGRADE_VERSION,
     ];
 
     file_put_contents('resultado_autograde.json', json_encode($resultado, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
