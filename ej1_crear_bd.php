@@ -1,7 +1,7 @@
 <?php
 /**
  * ej1_crear_bd.php — Ejercicio 1: Crear base de datos y tabla
- * Lab 11 · Desarrollo Web · Taller #5
+ * Lab 11 · Desarrollo Web · Lab11
  *
  * INSTRUCCIONES:
  * 1. Reemplaza TU_SEMILLA con los últimos 3 dígitos de tu cédula.
@@ -9,7 +9,9 @@
  * 3. No uses mysqli_* ni frameworks.
  * 4. Usa PDO con try/catch para el manejo de errores.
  */
- 
+
+require_once 'db_config.php';
+
 // ─── Semilla personal ─────────────────────────────────────────────────────────
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula (solo número)
 $semilla = 0; // ← CAMBIA ESTO
@@ -20,12 +22,10 @@ $fechaHora     = date('Y-m-d H:i:s');
 
 // ─── Conexión para crear la base de datos ─────────────────────────────────────
 // NOTA: Para crear la BD necesitamos conectarnos SIN especificar dbname
-// TODO: Crear una conexión PDO a localhost sin especificar la base de datos
-//       DSN: 'mysql:host=localhost;charset=utf8mb4'
-//       Captura PDOException y muestra el mensaje de error
-
 try {
-    // TODO: Crear objeto PDO (sin dbname en el DSN)
+    // TODO: Crear objeto PDO sin dbname usando las constantes de db_config.php:
+    //       $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=' . DB_CHARSET;
+    //       $pdo = new PDO($dsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     $pdo = null; // ← REEMPLAZA null con la conexión correcta
 
     // TODO: Ejecutar SQL para crear la base de datos si no existe
