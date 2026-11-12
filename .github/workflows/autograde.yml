@@ -1,0 +1,109 @@
+name: Autograde Lab11
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  grade:
+    name: Calificar Lab11
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ""
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: tienda_lab11
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout del código del estudiante
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Necesario para analizar el historial de commits
+
+      - name: Leer rama activa
+        run: |
+          if [ -n "${{ github.head_ref }}" ]; then
+            echo "RAMA=${{ github.head_ref }}" >> $GITHUB_ENV
+          else
+            echo "RAMA=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
+      - name: Instalar PHP con extensión PDO MySQL
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo, pdo_mysql
+
+      - name: Verificar integridad del autograde (descargar versión oficial)
+        run: |
+          OFICIAL_URL="https://raw.githubusercontent.com/SarmientoEdu/Lab11-php/main/autograde.php"
+          OFICIAL_WF="https://raw.githubusercontent.com/SarmientoEdu/Lab11-php/main/.github/workflows/autograde.yml"
+
+          if curl -sf -o /tmp/autograde_oficial.php "$OFICIAL_URL"; then
+            echo "✅ Versión oficial de autograde.php descargada"
+            if ! diff -q autograde.php /tmp/autograde_oficial.php > /dev/null 2>&1; then
+              echo "⚠️ ADVERTENCIA: autograde.php fue modificado respecto a la versión oficial"
+              echo "AUTOGRADE_MODIFICADO=true" >> $GITHUB_ENV
+            else
+              echo "✅ autograde.php sin modificaciones"
+              echo "AUTOGRADE_MODIFICADO=false" >> $GITHUB_ENV
+              # Usar la versión oficial para garantizar integridad
+              cp /tmp/autograde_oficial.php autograde.php
+            fi
+          else
+            echo "⚠️ No se pudo descargar la versión oficial; se usa la local"
+            echo "AUTOGRADE_MODIFICADO=local_only" >> $GITHUB_ENV
+          fi
+
+          if curl -sf -o /tmp/autograde_oficial.yml "$OFICIAL_WF"; then
+            if ! diff -q .github/workflows/autograde.yml /tmp/autograde_oficial.yml > /dev/null 2>&1; then
+              echo "⚠️ ADVERTENCIA: autograde.yml fue modificado"
+            fi
+          fi
+
+      - name: Esperar MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 --silent 2>/dev/null; then
+              echo "MySQL listo"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Ejecutar autograde
+        run: php autograde.php
+        env:
+          GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASS: ""
+          DB_NAME: tienda_lab11
+
+      - name: Subir resultado como artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultado_autograde
+          path: resultado_autograde.json
+          if-no-files-found: warn
