@@ -1,4 +1,4 @@
-# Lab 11 — Taller #5: Acceso a Base de Datos en PHP
+# Lab 11: Acceso a Base de Datos en PHP
 
 **Curso:** Desarrollo Web | **Módulo:** IV | **Profesor:** SarmientoEdu
 
@@ -6,7 +6,7 @@
 
 ## ¿Qué hay aquí?
 
-Este es el repositorio base del Taller #5. Contiene el esqueleto de los 5 ejercicios que debes completar.
+Este es el repositorio base del Lab # 11. Contiene el esqueleto de los 5 ejercicios que debes completar.
 
 ## Instrucciones rápidas 
 
