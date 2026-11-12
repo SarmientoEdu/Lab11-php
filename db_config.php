@@ -1,7 +1,7 @@
 <?php
 /**
  * db_config.php — Configuración de conexión PDO
- * Lab 11 · Desarrollo Web · Taller #5
+ * Lab 11 · Desarrollo Web · Lab 11
  *
  * INSTRUCCIONES DE SEGURIDAD:
  * - Este archivo NUNCA debe subirse con credenciales reales de producción.
@@ -10,10 +10,11 @@
  */
 
 // ─── Parámetros de conexión ───────────────────────────────────────────────────
-define('DB_HOST',    'localhost');
-define('DB_USER',    'root');
-define('DB_PASS',    '');           // Sin contraseña en XAMPP por defecto
-define('DB_NAME',    'tienda_lab11');
+define('DB_HOST',    getenv('DB_HOST') ?: '127.0.0.1'); // TCP/IP (compatible con XAMPP y CI)
+define('DB_PORT',    getenv('DB_PORT') ?: '3306');
+define('DB_USER',    getenv('DB_USER') ?: 'root');
+define('DB_PASS',    getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''); // Sin contraseña por defecto
+define('DB_NAME',    getenv('DB_NAME') ?: 'tienda_lab11');
 define('DB_CHARSET', 'utf8mb4');
 
 /**
@@ -24,8 +25,8 @@ define('DB_CHARSET', 'utf8mb4');
  */
 function obtenerConexion(): PDO {
     $dsn = sprintf(
-        'mysql:host=%s;dbname=%s;charset=%s',
-        DB_HOST, DB_NAME, DB_CHARSET
+        'mysql:host=%s;port=%s;dbname=%s;charset=%s',
+        DB_HOST, DB_PORT, DB_NAME, DB_CHARSET
     );
     $opciones = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
