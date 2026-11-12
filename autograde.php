@@ -1,7 +1,7 @@
 <?php
 /**
  * autograde.php — Sistema de calificación automática
- * Lab 11 · Desarrollo Web · Taller #5 · Acceso a BD en PHP
+ * Lab 11 · Desarrollo Web · Acceso a BD en PHP
  *
  * USO LOCAL: php autograde.php [semilla]
  * USO CI:    Ejecutado por .github/workflows/autograde.yml
