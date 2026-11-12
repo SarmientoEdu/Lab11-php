@@ -8,7 +8,7 @@
 
 Este es el repositorio base del Taller #5. Contiene el esqueleto de los 5 ejercicios que debes completar.
 
-## Instrucciones rápidas
+## Instrucciones rápidas 
 
 1. **Haz fork** de este repo.
 2. **Habilita Actions** en tu fork (pestaña Actions → botón verde).
