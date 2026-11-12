@@ -9,7 +9,7 @@
  * 3. No uses mysqli_* ni frameworks.
  * 4. Usa PDO con try/catch para el manejo de errores.
  */
-
+ 
 // ─── Semilla personal ─────────────────────────────────────────────────────────
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula (solo número)
 $semilla = 0; // ← CAMBIA ESTO
