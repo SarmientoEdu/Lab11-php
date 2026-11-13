@@ -13,31 +13,38 @@
 require_once 'db_config.php';
 
 // ─── Semilla personal ─────────────────────────────────────────────────────────
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula (solo número)
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 511;
 
 // ─── Datos de control personales (NO modificar estas líneas) ─────────────────
 $computadora   = gethostname();
 $fechaHora     = date('Y-m-d H:i:s');
 
 // ─── Conexión para crear la base de datos ─────────────────────────────────────
-// NOTA: Para crear la BD necesitamos conectarnos SIN especificar dbname
 try {
-    // TODO: Crear objeto PDO sin dbname usando las constantes de db_config.php:
-    //       $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=' . DB_CHARSET;
-    //       $pdo = new PDO($dsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-    $pdo = null; // ← REEMPLAZA null con la conexión correcta
+    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=' . DB_CHARSET;
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
 
-    // TODO: Ejecutar SQL para crear la base de datos si no existe
-    // SQL: CREATE DATABASE IF NOT EXISTS tienda_lab11 DEFAULT CHARACTER SET utf8mb4
+    $nombreBD    = DB_NAME;
+    $nombreTabla = 'productos';
 
-    // TODO: Seleccionar la base de datos recién creada
-    // SQL: USE tienda_lab11
+    // Crear la base de datos si no existe
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS `$nombreBD` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
-    // TODO: Ejecutar SQL para crear la tabla productos si no existe
-    // La tabla debe tener: id (PK AI), nombre VARCHAR(100), precio DECIMAL(10,2),
-    //                      stock INT DEFAULT 0, semilla INT
-    // Todas las columnas excepto id deben ser NOT NULL
+    // Seleccionar la base de datos recién creada
+    $pdo->exec("USE `$nombreBD`");
+
+    // Crear la tabla productos si no existe
+    $sqlTabla = "CREATE TABLE IF NOT EXISTS `$nombreTabla` (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        nombre VARCHAR(100) NOT NULL,
+        precio DECIMAL(10,2) NOT NULL,
+        stock INT NOT NULL DEFAULT 0,
+        semilla INT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    $pdo->exec($sqlTabla);
 
     // ─── Salida HTML ──────────────────────────────────────────────────────────
     ?>
@@ -55,11 +62,10 @@ try {
     <body>
         <h1>Ejercicio 1 — Crear Base de Datos</h1>
         <div class="info">
-            <!-- TODO: Reemplaza los valores ??? con las variables correctas -->
-            <p>Base de datos: <strong>???</strong></p>
-            <p>Tabla: <strong>???</strong></p>
+            <p>Base de datos: <strong><?= htmlspecialchars($nombreBD) ?></strong></p>
+            <p>Tabla: <strong><?= htmlspecialchars($nombreTabla) ?></strong></p>
             <p class="ok">Estado: Creada correctamente</p>
-            <p>Semilla usada: <strong>???</strong></p>
+            <p>Semilla usada: <strong><?= htmlspecialchars((string)$semilla) ?></strong></p>
             <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
                — <?= htmlspecialchars($fechaHora) ?></p>
         </div>
@@ -68,6 +74,5 @@ try {
     <?php
 
 } catch (PDOException $e) {
-    // TODO: Muestra el mensaje de error de forma segura
     echo '<p style="color:red">Error de conexión: ' . htmlspecialchars($e->getMessage()) . '</p>';
 }
