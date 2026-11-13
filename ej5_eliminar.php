@@ -6,34 +6,62 @@
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+// Semilla personal (últimos 3 dígitos de cédula)
+$semilla = 511;
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
-// TODO: Calcula el umbral: (semilla % 10) + 1
-$umbral = 0; // ← IMPLEMENTA LA FÓRMULA
+// Umbral: (semilla % 10) + 1
+$umbral = ($semilla % 10) + 1;
 
 try {
     $pdo = obtenerConexion();
 
     // ─── Paso 1: Busca qué se va a eliminar ───────────────────────────────────
-    // TODO: SELECT id, nombre, stock WHERE semilla = ? AND stock < ?
-    $aEliminar = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $stmtSelect = $pdo->prepare('SELECT id, nombre, stock FROM productos WHERE semilla = :semilla AND stock < :umbral ORDER BY id');
+    $stmtSelect->execute([
+        ':semilla' => $semilla,
+        ':umbral'  => $umbral,
+    ]);
+    $aEliminar = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
 
     if (empty($aEliminar)) {
-        // TODO: Muestra el mensaje: "No hay productos con stock menor a N"
-        echo '<p>No hay productos con stock menor a ' . $umbral . '</p>';
+        ?>
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Ej5 - DELETE</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                .resumen { background: #fce4ec; padding: 15px; margin-top: 20px; border-radius: 6px; }
+            </style>
+        </head>
+        <body>
+            <h1>Ejercicio 5 — Eliminar Productos</h1>
+            <p>Umbral de stock: <strong><?= $umbral ?></strong></p>
+            <p>No hay productos con stock menor a <?= $umbral ?></p>
+            <div class="resumen">
+                <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
+                   — <?= htmlspecialchars($fechaHora) ?></p>
+            </div>
+        </body>
+        </html>
+        <?php
     } else {
         // ─── Paso 2: Elimina ──────────────────────────────────────────────────
-        // TODO: DELETE FROM productos WHERE semilla = ? AND stock < ?
-        // Usa sentencia preparada
-        $totalEliminados = 0; // ← $stmt->rowCount()
+        $stmtDelete = $pdo->prepare('DELETE FROM productos WHERE semilla = :semilla AND stock < :umbral');
+        $stmtDelete->execute([
+            ':semilla' => $semilla,
+            ':umbral'  => $umbral,
+        ]);
+        $totalEliminados = $stmtDelete->rowCount();
 
         // ─── Paso 3: Cuenta los restantes ────────────────────────────────────
-        // TODO: SELECT COUNT(*) FROM productos WHERE semilla = ?
-        $restantes = 0; // ← fetchColumn()
+        $stmtCount = $pdo->prepare('SELECT COUNT(*) FROM productos WHERE semilla = :semilla');
+        $stmtCount->execute([':semilla' => $semilla]);
+        $restantes = (int)$stmtCount->fetchColumn();
 
         ?>
         <!DOCTYPE html>
