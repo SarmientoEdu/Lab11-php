@@ -1,82 +1,113 @@
+
 <?php
 /**
- * ej2_insertar.php — Ejercicio 2: Insertar datos con sentencia preparada
- * Lab 11 · Desarrollo Web · Taller #5
+ * Ejercicio 2: Insertar datos en la tabla productos
+ * Estudiante: René Mariscal
+ * Semilla personal: 565
  */
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 565;
+$total = ($semilla % 5) + 3;
 
 $computadora = gethostname();
-$fechaHora   = date('Y-m-d H:i:s');
-
-// ─── Cálculos derivados de la semilla ─────────────────────────────────────────
-// TODO: Calcula cuántos productos insertar: (semilla % 5) + 3
-$totalProductos = 0; // ← IMPLEMENTA LA FÓRMULA
+$fechaHora = date('Y-m-d H:i:s');
 
 try {
-    $pdo = obtenerConexion();
+    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=tienda_lab11;charset=' . DB_CHARSET;
 
-    // TODO: Prepara la sentencia INSERT con placeholders
-    // Columnas: nombre, precio, stock, semilla
-    $stmt = null; // ← REEMPLAZA con $pdo->prepare(...)
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
 
-    $productosInsertados = [];
+    // Iniciar transacción para mantener los datos consistentes
+    $pdo->beginTransaction();
 
-    for ($i = 0; $i < $totalProductos; $i++) {
-        // TODO: Calcula los valores para cada producto usando la semilla:
-        //   nombre: "Producto_" . ($semilla * ($i + 1))
-        //   precio: round($semilla * 1.5 + $i * 3.75, 2)
-        //   stock:  ($semilla + $i * 7) % 50 + 1
-        $nombre = ''; // ← IMPLEMENTA
-        $precio = 0;  // ← IMPLEMENTA
-        $stock  = 0;  // ← IMPLEMENTA
+    // Eliminar registros anteriores de la misma semilla para evitar duplicados
+    $limpiar = $pdo->prepare(
+        "DELETE FROM productos WHERE semilla = :semilla"
+    );
 
-        // TODO: Ejecuta la sentencia preparada con los valores calculados
-        // $stmt->execute([...])
+    $limpiar->execute([
+        ':semilla' => $semilla
+    ]);
 
-        // TODO: Guarda el id del último insertado
-        $id = 0; // ← usa $pdo->lastInsertId()
+    // Preparar la consulta SQL
+    $sql = "INSERT INTO productos (nombre, precio, stock, semilla)
+            VALUES (:nombre, :precio, :stock, :semilla)";
 
-        $productosInsertados[] = compact('id', 'nombre', 'precio', 'stock');
+    $stmt = $pdo->prepare($sql);
+
+    $insertados = [];
+
+    // Insertar los productos calculados con la semilla
+    for ($i = 0; $i < $total; $i++) {
+
+        $nombre = 'Producto_' . ($semilla * ($i + 1));
+
+        $precio = round($semilla * 1.5 + $i * 3.75, 2);
+
+        $stock = ($semilla + $i * 7) % 50 + 1;
+
+        $stmt->execute([
+            ':nombre' => $nombre,
+            ':precio' => $precio,
+            ':stock' => $stock,
+            ':semilla' => $semilla
+        ]);
+
+        $insertados[] = [
+            'id' => $pdo->lastInsertId(),
+            'nombre' => $nombre,
+            'precio' => $precio,
+            'stock' => $stock
+        ];
     }
 
-    ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <title>Ej2 - INSERT</title>
-        <style>
-            body  { font-family: Arial, sans-serif; margin: 40px; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-            th { background: #4a90d9; color: white; }
-        </style>
-    </head>
-    <body>
-        <h1>Ejercicio 2 — Productos Insertados</h1>
-        <table>
-            <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
-            <?php foreach ($productosInsertados as $p): ?>
-            <tr>
-                <td><?= (int)$p['id'] ?></td>
-                <td><?= htmlspecialchars($p['nombre']) ?></td>
-                <!-- TODO: Formatea precio como B/. XXXX.XX -->
-                <td>B/. <?= number_format($p['precio'], 2) ?></td>
-                <td><?= (int)$p['stock'] ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </table>
-        <p>Total insertado: <strong><?= count($productosInsertados) ?> registros</strong></p>
-        <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-           — <?= htmlspecialchars($fechaHora) ?></p>
-    </body>
-    </html>
-    <?php
+    // Confirmar las inserciones
+    $pdo->commit();
+
+    echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">';
+    echo '<title>Ejercicio 2</title></head><body>';
+
+    echo '<h2>Productos insertados</h2>';
+
+    echo '<table border="1" cellpadding="6">';
+    echo '<tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>';
+
+    foreach ($insertados as $producto) {
+
+        echo '<tr>';
+
+        echo '<td>' . htmlspecialchars((string)$producto['id']) . '</td>';
+
+        echo '<td>' . htmlspecialchars($producto['nombre']) . '</td>';
+
+        echo '<td>' . number_format($producto['precio'], 2, '.', '') . '</td>';
+
+        echo '<td>' . $producto['stock'] . '</td>';
+
+        echo '</tr>';
+    }
+
+    echo '</table>';
+
+    echo '<p>Total insertado: ' . count($insertados) . ' registros</p>';
+
+    echo '<p>Semilla usada: ' . $semilla . '</p>';
+    echo '<p>Estudiante: René Mariscal</p>';
+
+    echo '<p>Ejecutado en: ' . htmlspecialchars($computadora) . ' - ' . $fechaHora . '</p>';
+
+    echo '</body></html>';
 
 } catch (PDOException $e) {
-    echo '<p style="color:red">Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
+
+    // Deshacer cambios si ocurre un error
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    echo 'Error al insertar: ' . htmlspecialchars($e->getMessage());
 }
