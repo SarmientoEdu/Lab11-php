@@ -6,32 +6,36 @@
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+// Semilla personal (últimos 3 dígitos de cédula)
+$semilla = 511;
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
-// TODO: Calcula el porcentaje de incremento: (semilla % 20) + 5
-$porcentaje = 0; // ← IMPLEMENTA LA FÓRMULA
+// Porcentaje de incremento: (semilla % 20) + 5
+$porcentaje = ($semilla % 20) + 5;
 
 try {
     $pdo = obtenerConexion();
 
     // ─── ANTES: obtén los precios actuales ────────────────────────────────────
-    // TODO: SELECT id, nombre, precio WHERE semilla = ? ORDER BY id
-    $antes = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $stmtAntes = $pdo->prepare('SELECT id, nombre, precio FROM productos WHERE semilla = :semilla ORDER BY id');
+    $stmtAntes->execute([':semilla' => $semilla]);
+    $antes = $stmtAntes->fetchAll(PDO::FETCH_ASSOC);
 
     // ─── UPDATE: aplica el incremento ─────────────────────────────────────────
-    // TODO: Prepara un UPDATE que calcule:
-    //   nuevo_precio = precio * (1 + porcentaje / 100)
-    //   WHERE semilla = :semilla
-    // Usa sentencia preparada PDO
-    $filasActualizadas = 0; // ← $stmt->rowCount()
+    $factor     = 1 + ($porcentaje / 100);
+    $stmtUpdate = $pdo->prepare('UPDATE productos SET precio = ROUND(precio * :factor, 2) WHERE semilla = :semilla');
+    $stmtUpdate->execute([
+        ':factor'  => $factor,
+        ':semilla' => $semilla,
+    ]);
+    $filasActualizadas = $stmtUpdate->rowCount();
 
     // ─── DESPUÉS: obtén los precios nuevos ────────────────────────────────────
-    // TODO: Mismo SELECT de antes pero ahora los valores son los nuevos
-    $despues = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $stmtDespues = $pdo->prepare('SELECT id, nombre, precio FROM productos WHERE semilla = :semilla ORDER BY id');
+    $stmtDespues->execute([':semilla' => $semilla]);
+    $despues = $stmtDespues->fetchAll(PDO::FETCH_ASSOC);
 
     ?>
     <!DOCTYPE html>
@@ -53,14 +57,13 @@ try {
         <table>
             <tr><th>Nombre</th><th>Precio anterior</th><th>Precio nuevo</th></tr>
             <?php
-            // TODO: Combina $antes y $despues para mostrar la comparación
             foreach ($antes as $i => $prod):
                 $precioNuevo = isset($despues[$i]) ? $despues[$i]['precio'] : 0;
             ?>
             <tr>
                 <td><?= htmlspecialchars($prod['nombre']) ?></td>
-                <td>B/. <?= number_format((float)$prod['precio'], 2) ?></td>
-                <td class="nuevo">B/. <?= number_format((float)$precioNuevo, 2) ?></td>
+                <td>B/. <?= number_format((float)$prod['precio'], 2, '.', '') ?></td>
+                <td class="nuevo">B/. <?= number_format((float)$precioNuevo, 2, '.', '') ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
