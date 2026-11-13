@@ -9,6 +9,8 @@
  * - Incluir con require_once 'db_config.php'; desde cada ejercicio.
  */
 
+date_default_timezone_set('America/Panama');
+
 // ─── Parámetros de conexión ───────────────────────────────────────────────────
 define('DB_HOST',    getenv('DB_HOST') ?: '127.0.0.1'); // TCP/IP (compatible con XAMPP y CI)
 define('DB_PORT',    getenv('DB_PORT') ?: '3306');
