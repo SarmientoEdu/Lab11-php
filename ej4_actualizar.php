@@ -1,76 +1,124 @@
+
 <?php
 /**
- * ej4_actualizar.php — Ejercicio 4: Actualizar precios
- * Lab 11 · Desarrollo Web · Taller #5
+ * Ejercicio 4: Actualizar precios
+ * Estudiante: René Mariscal
+ * Semilla personal: 565
  */
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 565;
+$porcentaje = ($semilla % 20) + 5;
 
 $computadora = gethostname();
-$fechaHora   = date('Y-m-d H:i:s');
-
-// TODO: Calcula el porcentaje de incremento: (semilla % 20) + 5
-$porcentaje = 0; // ← IMPLEMENTA LA FÓRMULA
+$fechaHora = date('Y-m-d H:i:s');
 
 try {
-    $pdo = obtenerConexion();
+    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=tienda_lab11;charset=' . DB_CHARSET;
 
-    // ─── ANTES: obtén los precios actuales ────────────────────────────────────
-    // TODO: SELECT id, nombre, precio WHERE semilla = ? ORDER BY id
-    $antes = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
 
-    // ─── UPDATE: aplica el incremento ─────────────────────────────────────────
-    // TODO: Prepara un UPDATE que calcule:
-    //   nuevo_precio = precio * (1 + porcentaje / 100)
-    //   WHERE semilla = :semilla
-    // Usa sentencia preparada PDO
-    $filasActualizadas = 0; // ← $stmt->rowCount()
+    // Iniciar transacción para actualizar los registros
+    $pdo->beginTransaction();
 
-    // ─── DESPUÉS: obtén los precios nuevos ────────────────────────────────────
-    // TODO: Mismo SELECT de antes pero ahora los valores son los nuevos
-    $despues = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    // Consultar precios anteriores
+    $consulta = $pdo->prepare(
+        "SELECT id, nombre, precio
+         FROM productos
+         WHERE semilla = :semilla
+         ORDER BY id ASC"
+    );
 
-    ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <title>Ej4 - UPDATE</title>
-        <style>
-            body   { font-family: Arial, sans-serif; margin: 40px; }
-            table  { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ccc; padding: 8px; }
-            th     { background: #e65100; color: white; }
-            .nuevo { color: #2e7d32; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <h1>Ejercicio 4 — Actualización de Precios</h1>
-        <p>Incremento aplicado: <strong><?= $porcentaje ?>%</strong></p>
-        <table>
-            <tr><th>Nombre</th><th>Precio anterior</th><th>Precio nuevo</th></tr>
-            <?php
-            // TODO: Combina $antes y $despues para mostrar la comparación
-            foreach ($antes as $i => $prod):
-                $precioNuevo = isset($despues[$i]) ? $despues[$i]['precio'] : 0;
-            ?>
-            <tr>
-                <td><?= htmlspecialchars($prod['nombre']) ?></td>
-                <td>B/. <?= number_format((float)$prod['precio'], 2) ?></td>
-                <td class="nuevo">B/. <?= number_format((float)$precioNuevo, 2) ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </table>
-        <p>Total filas actualizadas: <strong><?= $filasActualizadas ?></strong></p>
-        <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-           — <?= htmlspecialchars($fechaHora) ?></p>
-    </body>
-    </html>
-    <?php
+    $consulta->execute([':semilla' => $semilla]);
+
+    $productos = $consulta->fetchAll(PDO::FETCH_ASSOC);
+
+    // Preparar actualización
+    $actualizar = $pdo->prepare(
+        "UPDATE productos
+         SET precio = :precio
+         WHERE id = :id AND semilla = :semilla"
+    );
+
+    $comparacion = [];
+    $totalActualizados = 0;
+
+    foreach ($productos as $producto) {
+
+        $precioAnterior = (float)$producto['precio'];
+
+        $precioNuevo = round(
+            $precioAnterior * (1 + $porcentaje / 100),
+            2
+        );
+
+        $actualizar->execute([
+            ':precio' => $precioNuevo,
+            ':id' => $producto['id'],
+            ':semilla' => $semilla
+        ]);
+
+        $totalActualizados += $actualizar->rowCount();
+
+        $comparacion[] = [
+            'nombre' => $producto['nombre'],
+            'anterior' => $precioAnterior,
+            'nuevo' => $precioNuevo
+        ];
+    }
+
+    // Confirmar las actualizaciones
+    $pdo->commit();
+
+    echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">';
+    echo '<title>Ejercicio 4</title></head><body>';
+
+    echo '<h2>Actualización de precios</h2>';
+
+    echo '<p>Incremento aplicado: ' . $porcentaje . '%</p>';
+
+    echo '<table border="1" cellpadding="6">';
+
+    echo '<tr>
+            <th>Nombre</th>
+            <th>Precio anterior</th>
+            <th>Precio nuevo</th>
+          </tr>';
+
+    foreach ($comparacion as $fila) {
+
+        echo '<tr>';
+
+        echo '<td>' . htmlspecialchars($fila['nombre']) . '</td>';
+
+        echo '<td>B/. ' . number_format($fila['anterior'], 2, '.', '') . '</td>';
+
+        echo '<td>B/. ' . number_format($fila['nuevo'], 2, '.', '') . '</td>';
+
+        echo '</tr>';
+    }
+
+    echo '</table>';
+
+    echo '<p>Total filas actualizadas: ' . $totalActualizados . '</p>';
+
+    echo '<p>Semilla usada: ' . $semilla . '</p>';
+    echo '<p>Estudiante: René Mariscal</p>';
+
+    echo '<p>Ejecutado en: ' . htmlspecialchars($computadora) . ' - ' . $fechaHora . '</p>';
+
+    echo '</body></html>';
 
 } catch (PDOException $e) {
-    echo '<p style="color:red">Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
+
+    // Deshacer cambios si ocurre un error
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    echo 'Error al actualizar: ' . htmlspecialchars($e->getMessage());
 }
+

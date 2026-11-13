@@ -1,74 +1,113 @@
+
 <?php
 /**
- * ej3_listar.php — Ejercicio 3: Seleccionar y mostrar datos
- * Lab 11 · Desarrollo Web · Taller #5
+ * Ejercicio 3: Seleccionar y mostrar productos
+ * Estudiante: René Mariscal
+ * Semilla personal: 565
  */
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
-
+$semilla = 565;
 $computadora = gethostname();
-$fechaHora   = date('Y-m-d H:i:s');
+$fechaHora = date('Y-m-d H:i:s');
 
 try {
-    $pdo = obtenerConexion();
+    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=tienda_lab11;charset=' . DB_CHARSET;
 
-    // TODO: Prepara y ejecuta una consulta SELECT que:
-    //   - Seleccione todos los productos WHERE semilla = :semilla
-    //   - Ordene por precio ASC
-    //   - Use fetchAll(PDO::FETCH_ASSOC)
-    $productos = []; // ← REEMPLAZA con el resultado real
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
 
-    // TODO: Calcula en PHP (NO en SQL):
-    //   - Precio promedio usando array_sum() y count()
-    //   - Stock total usando array_sum con array_column()
-    $precios       = []; // ← array_column($productos, 'precio')
-    $precioPromedio = 0;  // ← IMPLEMENTA con array_sum / count
-    $stockTotal    = 0;   // ← IMPLEMENTA con array_sum / array_column
+    // Consultar productos de nuestra semilla
+    $stmt = $pdo->prepare(
+        "SELECT id, nombre, precio, stock, semilla
+         FROM productos
+         WHERE semilla = :semilla
+         ORDER BY precio ASC"
+    );
 
-    ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <title>Ej3 - SELECT</title>
-        <style>
-            body   { font-family: Arial, sans-serif; margin: 40px; }
-            table  { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ccc; padding: 8px; }
-            th     { background: #2e7d32; color: white; }
-            /* TODO: Agrega estilo para filas alternas (nth-child even) */
-            tr:nth-child(even) td { background: #f5f5f5; }
-            .resumen { background: #e8f5e9; padding: 15px; margin-top: 20px; border-radius: 6px; }
-        </style>
-    </head>
-    <body>
-        <h1>Ejercicio 3 — Listado de Productos</h1>
-        <table>
-            <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
-            <?php foreach ($productos as $p): ?>
-            <tr>
-                <td><?= (int)$p['id'] ?></td>
-                <td><?= htmlspecialchars($p['nombre']) ?></td>
-                <td>B/. <?= number_format((float)$p['precio'], 2) ?></td>
-                <td><?= (int)$p['stock'] ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </table>
-        <div class="resumen">
-            <p>Total de productos: <strong><?= count($productos) ?></strong></p>
-            <!-- TODO: Muestra precio promedio con format B/. XXXX.XX -->
-            <p>Precio promedio: <strong>B/. <?= number_format($precioPromedio, 2) ?></strong></p>
-            <p>Stock total: <strong><?= $stockTotal ?> unidades</strong></p>
-            <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-               — <?= htmlspecialchars($fechaHora) ?></p>
-        </div>
-    </body>
-    </html>
-    <?php
+    $stmt->execute([':semilla' => $semilla]);
+
+    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Calcular promedio y stock total en PHP
+    $precios = [];
+    $stockTotal = 0;
+
+    foreach ($productos as $producto) {
+        $precios[] = (float)$producto['precio'];
+        $stockTotal += (int)$producto['stock'];
+    }
+
+    $promedio = count($precios) > 0
+        ? array_sum($precios) / count($precios)
+        : 0;
+
+    echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">';
+    echo '<title>Ejercicio 3</title>';
+
+    echo '<style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 80%;
+        }
+
+        th, td {
+            border: 1px solid #999;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background: #b7d7f0;
+        }
+
+        tr:nth-child(even) {
+            background: #eeeeee;
+        }
+    </style>';
+
+    echo '</head><body>';
+
+    echo '<h2>Listado de productos</h2>';
+
+    echo '<table>';
+    echo '<tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>';
+
+    foreach ($productos as $producto) {
+        echo '<tr>';
+
+        echo '<td>' . htmlspecialchars((string)$producto['id']) . '</td>';
+
+        echo '<td>' . htmlspecialchars($producto['nombre']) . '</td>';
+
+        echo '<td>B/. ' . number_format((float)$producto['precio'], 2, '.', '') . '</td>';
+
+        echo '<td>' . htmlspecialchars((string)$producto['stock']) . '</td>';
+
+        echo '</tr>';
+    }
+
+    echo '</table>';
+
+    echo '<p>Total de productos: ' . count($productos) . '</p>';
+
+    echo '<p>Precio promedio: B/. ' . number_format($promedio, 2, '.', '') . '</p>';
+
+    echo '<p>Stock total: ' . $stockTotal . ' unidades</p>';
+
+    echo '<p>Semilla usada: ' . $semilla . '</p>';
+    echo '<p>Estudiante: René Mariscal</p>';
+
+    echo '<p>Ejecutado en: ' . htmlspecialchars($computadora) . ' - ' . $fechaHora . '</p>';
+
+    echo '</body></html>';
 
 } catch (PDOException $e) {
-    echo '<p style="color:red">Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
+    echo 'Error al consultar: ' . htmlspecialchars($e->getMessage());
 }
