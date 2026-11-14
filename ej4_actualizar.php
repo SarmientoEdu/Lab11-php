@@ -7,31 +7,39 @@
 require_once 'db_config.php';
 
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 534;
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
 // TODO: Calcula el porcentaje de incremento: (semilla % 20) + 5
-$porcentaje = 0; // ← IMPLEMENTA LA FÓRMULA
+$porcentaje = ($semilla % 20) + 5;
 
 try {
     $pdo = obtenerConexion();
 
     // ─── ANTES: obtén los precios actuales ────────────────────────────────────
     // TODO: SELECT id, nombre, precio WHERE semilla = ? ORDER BY id
-    $antes = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $stmtSelect = $pdo->prepare('SELECT id, nombre, precio FROM productos WHERE semilla = ? ORDER BY id');
+    $stmtSelect->execute([$semilla]);
+    $antes = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
 
     // ─── UPDATE: aplica el incremento ─────────────────────────────────────────
     // TODO: Prepara un UPDATE que calcule:
     //   nuevo_precio = precio * (1 + porcentaje / 100)
     //   WHERE semilla = :semilla
     // Usa sentencia preparada PDO
-    $filasActualizadas = 0; // ← $stmt->rowCount()
+    $stmtUpdate = $pdo->prepare('UPDATE productos SET precio = ROUND(precio * (1 + :porcentaje / 100), 2) WHERE semilla = :semilla');
+    $stmtUpdate->execute([
+        ':porcentaje' => $porcentaje,
+        ':semilla'    => $semilla,
+    ]);
+    $filasActualizadas = $stmtUpdate->rowCount();
 
     // ─── DESPUÉS: obtén los precios nuevos ────────────────────────────────────
     // TODO: Mismo SELECT de antes pero ahora los valores son los nuevos
-    $despues = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $stmtSelect->execute([$semilla]);
+    $despues = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
 
     ?>
     <!DOCTYPE html>
@@ -49,6 +57,7 @@ try {
     </head>
     <body>
         <h1>Ejercicio 4 — Actualización de Precios</h1>
+        <p>Estudiante: <strong>Adrián Maldonado</strong> | Semilla: <strong><?= (int)$semilla ?></strong></p>
         <p>Incremento aplicado: <strong><?= $porcentaje ?>%</strong></p>
         <table>
             <tr><th>Nombre</th><th>Precio anterior</th><th>Precio nuevo</th></tr>
@@ -59,14 +68,14 @@ try {
             ?>
             <tr>
                 <td><?= htmlspecialchars($prod['nombre']) ?></td>
-                <td>B/. <?= number_format((float)$prod['precio'], 2) ?></td>
-                <td class="nuevo">B/. <?= number_format((float)$precioNuevo, 2) ?></td>
+                <td>B/. <?= number_format((float)$prod['precio'], 2, '.', '') ?></td>
+                <td class="nuevo">B/. <?= number_format((float)$precioNuevo, 2, '.', '') ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
         <p>Total filas actualizadas: <strong><?= $filasActualizadas ?></strong></p>
         <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-           — <?= htmlspecialchars($fechaHora) ?></p>
+            — <?= htmlspecialchars($fechaHora) ?></p>
     </body>
     </html>
     <?php

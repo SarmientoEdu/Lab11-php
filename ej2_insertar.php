@@ -67,24 +67,23 @@ try {
         <h1>Ejercicio 2 — Productos Insertados</h1>
         <p>Estudiante: <strong>Adrián Maldonado</strong> | Semilla: <strong><?= (int) $semilla ?></strong></p>
         <table>
-            <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
+           <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
             <?php foreach ($productosInsertados as $p): ?>
             <tr>
-                <td><?= (int)$p['id'] ?></td>
+                <td><?= (int) $p['id'] ?></td>
                 <td><?= htmlspecialchars($p['nombre']) ?></td>
-                <!-- TODO: Formatea precio como B/. XXXX.XX -->
-                <td>B/. <?= number_format((float) $p['precio'], 2, '.', '') ?>?></td>
-                <td><?= (int)$p['stock'] ?></td>
+                <td>B/. <?= number_format((float) $p['precio'], 2, '.', '') ?></td>
+                <td><?= (int) $p['stock'] ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
         <p>Total insertado: <strong><?= count($productosInsertados) ?> registros</strong></p>
         <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-           — <?= htmlspecialchars($fechaHora) ?></p>
+            — <?= htmlspecialchars($fechaHora) ?></p>
     </body>
     </html>
     <?php
-
+    
 } catch (PDOException $e) {
     echo '<p style="color:red">Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
 }
