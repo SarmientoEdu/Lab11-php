@@ -1,44 +1,41 @@
 <?php
 /**
  * ej2_insertar.php — Ejercicio 2: Insertar datos con sentencia preparada
- * Lab 11 · Desarrollo Web · Taller #5
+ * Lab 11 · Desarrollo Web
  */
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 876; // ← los mismos últimos 3 dígitos de tu cédula que en el Ej1
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
 // ─── Cálculos derivados de la semilla ─────────────────────────────────────────
-// TODO: Calcula cuántos productos insertar: (semilla % 5) + 3
-$totalProductos = 0; // ← IMPLEMENTA LA FÓRMULA
+$totalProductos = ($semilla % 5) + 3;
 
 try {
     $pdo = obtenerConexion();
 
-    // TODO: Prepara la sentencia INSERT con placeholders
-    // Columnas: nombre, precio, stock, semilla
-    $stmt = null; // ← REEMPLAZA con $pdo->prepare(...)
+    // Evita duplicados si recargas la página: borra lo previo de esta semilla
+    $stmtLimpiar = $pdo->prepare("DELETE FROM productos WHERE semilla = ?");
+    $stmtLimpiar->execute([$semilla]);
+
+    // Sentencia preparada para el INSERT
+    $stmt = $pdo->prepare(
+        "INSERT INTO productos (nombre, precio, stock, semilla) VALUES (?, ?, ?, ?)"
+    );
 
     $productosInsertados = [];
 
     for ($i = 0; $i < $totalProductos; $i++) {
-        // TODO: Calcula los valores para cada producto usando la semilla:
-        //   nombre: "Producto_" . ($semilla * ($i + 1))
-        //   precio: round($semilla * 1.5 + $i * 3.75, 2)
-        //   stock:  ($semilla + $i * 7) % 50 + 1
-        $nombre = ''; // ← IMPLEMENTA
-        $precio = 0;  // ← IMPLEMENTA
-        $stock  = 0;  // ← IMPLEMENTA
+        $nombre = "Producto_" . ($semilla * ($i + 1));
+        $precio = round($semilla * 1.5 + $i * 3.75, 2);
+        $stock  = ($semilla + $i * 7) % 50 + 1;
 
-        // TODO: Ejecuta la sentencia preparada con los valores calculados
-        // $stmt->execute([...])
+        $stmt->execute([$nombre, $precio, $stock, $semilla]);
 
-        // TODO: Guarda el id del último insertado
-        $id = 0; // ← usa $pdo->lastInsertId()
+        $id = (int)$pdo->lastInsertId();
 
         $productosInsertados[] = compact('id', 'nombre', 'precio', 'stock');
     }
@@ -58,21 +55,22 @@ try {
     </head>
     <body>
         <h1>Ejercicio 2 — Productos Insertados</h1>
-        <table>
+        <p>Estudiante: Ceballos Sergio | Semilla: <?= $semilla ?></p>
+
+        <h2>Productos insertados</h2>
+        <table border="1">
             <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
             <?php foreach ($productosInsertados as $p): ?>
             <tr>
                 <td><?= (int)$p['id'] ?></td>
                 <td><?= htmlspecialchars($p['nombre']) ?></td>
-                <!-- TODO: Formatea precio como B/. XXXX.XX -->
-                <td>B/. <?= number_format($p['precio'], 2) ?></td>
+                <td><?= number_format($p['precio'], 2, '.', '') ?></td>
                 <td><?= (int)$p['stock'] ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
-        <p>Total insertado: <strong><?= count($productosInsertados) ?> registros</strong></p>
-        <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-           — <?= htmlspecialchars($fechaHora) ?></p>
+        <p>Total insertado: <?= count($productosInsertados) ?> registros</p>
+        <p>Ejecutado en: <?= htmlspecialchars($computadora) ?> - <?= htmlspecialchars($fechaHora) ?></p>
     </body>
     </html>
     <?php
