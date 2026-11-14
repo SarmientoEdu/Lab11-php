@@ -7,21 +7,23 @@
 require_once 'db_config.php';
 
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 534; // ← CAMBIA ESTO
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
 // ─── Cálculos derivados de la semilla ─────────────────────────────────────────
 // TODO: Calcula cuántos productos insertar: (semilla % 5) + 3
-$totalProductos = 0; // ← IMPLEMENTA LA FÓRMULA
+$totalProductos = ($semilla % 5) + 3;
 
 try {
     $pdo = obtenerConexion();
 
     // TODO: Prepara la sentencia INSERT con placeholders
     // Columnas: nombre, precio, stock, semilla
-    $stmt = null; // ← REEMPLAZA con $pdo->prepare(...)
+    $sql = 'INSERT INTO productos (nombre, precio, stock, semilla) 
+            VALUES (:nombre, :precio, :stock, :semilla)';
+    $stmt = $pdo->prepare($sql);
 
     $productosInsertados = [];
 
@@ -30,15 +32,20 @@ try {
         //   nombre: "Producto_" . ($semilla * ($i + 1))
         //   precio: round($semilla * 1.5 + $i * 3.75, 2)
         //   stock:  ($semilla + $i * 7) % 50 + 1
-        $nombre = ''; // ← IMPLEMENTA
-        $precio = 0;  // ← IMPLEMENTA
-        $stock  = 0;  // ← IMPLEMENTA
+        $nombre = 'Producto_' . ($semilla * ($i + 1)); 
+        $precio = round($semilla * 1.5 + $i * 3.75, 2);
+        $stock  = ($semilla + $i * 7) % 50 + 1;
 
         // TODO: Ejecuta la sentencia preparada con los valores calculados
-        // $stmt->execute([...])
+        $stmt->execute([
+            ':nombre' => $nombre,
+            ':precio' => $precio,
+            ':stock'  => $stock,
+            ':semilla'=> $semilla
+        ]);
 
         // TODO: Guarda el id del último insertado
-        $id = 0; // ← usa $pdo->lastInsertId()
+        $id = $pdo->lastInsertId();
 
         $productosInsertados[] = compact('id', 'nombre', 'precio', 'stock');
     }
@@ -58,6 +65,7 @@ try {
     </head>
     <body>
         <h1>Ejercicio 2 — Productos Insertados</h1>
+        <p>Estudiante: <strong>Adrián Maldonado</strong> | Semilla: <strong><?= (int) $semilla ?></strong></p>
         <table>
             <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
             <?php foreach ($productosInsertados as $p): ?>
@@ -65,7 +73,7 @@ try {
                 <td><?= (int)$p['id'] ?></td>
                 <td><?= htmlspecialchars($p['nombre']) ?></td>
                 <!-- TODO: Formatea precio como B/. XXXX.XX -->
-                <td>B/. <?= number_format($p['precio'], 2) ?></td>
+                <td>B/. <?= number_format((float) $p['precio'], 2, '.', '') ?>?></td>
                 <td><?= (int)$p['stock'] ?></td>
             </tr>
             <?php endforeach; ?>
