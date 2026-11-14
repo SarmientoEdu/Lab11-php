@@ -10,6 +10,16 @@ class Productos
         $this->pdo = $pdo;
     }
 
+    public function listar(int $semilla): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, nombre, precio, stock FROM productos
+             WHERE semilla = :semilla ORDER BY precio ASC, id ASC'
+        );
+        $stmt->execute(['semilla' => $semilla]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function insertar(int $semilla): array
     {
         $total = ($semilla % 5) + 3;
