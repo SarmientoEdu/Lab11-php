@@ -1,43 +1,34 @@
 <?php
 /**
  * ej4_actualizar.php — Ejercicio 4: Actualizar precios
- * Lab 11 · Desarrollo Web · Taller #5
+ * Lab 11 · Desarrollo Web
  */
 
-require_once 'db_config.php';
+require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/Productos.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 343;
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
-// TODO: Calcula el porcentaje de incremento: (semilla % 20) + 5
-$porcentaje = 0; // ← IMPLEMENTA LA FÓRMULA
+$porcentaje = ($semilla % 20) + 5;
 
 try {
     $pdo = obtenerConexion();
 
-    // ─── ANTES: obtén los precios actuales ────────────────────────────────────
-    // TODO: SELECT id, nombre, precio WHERE semilla = ? ORDER BY id
-    $antes = []; // ← fetchAll(PDO::FETCH_ASSOC)
-
-    // ─── UPDATE: aplica el incremento ─────────────────────────────────────────
-    // TODO: Prepara un UPDATE que calcule:
-    //   nuevo_precio = precio * (1 + porcentaje / 100)
-    //   WHERE semilla = :semilla
-    // Usa sentencia preparada PDO
-    $filasActualizadas = 0; // ← $stmt->rowCount()
-
-    // ─── DESPUÉS: obtén los precios nuevos ────────────────────────────────────
-    // TODO: Mismo SELECT de antes pero ahora los valores son los nuevos
-    $despues = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $repositorio = new Productos($pdo);
+    $resultado = $repositorio->actualizarPrecios($semilla, $porcentaje);
+    $antes = $resultado['antes'];
+    $despuesPorId = array_column($resultado['despues'], null, 'id');
+    $filasActualizadas = $resultado['filasActualizadas'];
 
     ?>
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Ej4 - UPDATE</title>
         <style>
             body   { font-family: Arial, sans-serif; margin: 40px; }
@@ -49,13 +40,13 @@ try {
     </head>
     <body>
         <h1>Ejercicio 4 — Actualización de Precios</h1>
+        <p>Estudiante: <strong>Alejandro Sáenz</strong> | Semilla usada: <strong><?= $semilla ?></strong></p>
         <p>Incremento aplicado: <strong><?= $porcentaje ?>%</strong></p>
         <table>
             <tr><th>Nombre</th><th>Precio anterior</th><th>Precio nuevo</th></tr>
             <?php
-            // TODO: Combina $antes y $despues para mostrar la comparación
-            foreach ($antes as $i => $prod):
-                $precioNuevo = isset($despues[$i]) ? $despues[$i]['precio'] : 0;
+            foreach ($antes as $prod):
+                $precioNuevo = $despuesPorId[$prod['id']]['precio'];
             ?>
             <tr>
                 <td><?= htmlspecialchars($prod['nombre']) ?></td>
@@ -67,10 +58,12 @@ try {
         <p>Total filas actualizadas: <strong><?= $filasActualizadas ?></strong></p>
         <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
            — <?= htmlspecialchars($fechaHora) ?></p>
+        <p>Cada ejecución aplica el incremento a los precios actuales.</p>
     </body>
     </html>
     <?php
 
 } catch (PDOException $e) {
+    http_response_code(500);
     echo '<p style="color:red">Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
 }

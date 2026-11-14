@@ -20,6 +20,38 @@ class Productos
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function actualizarPrecios(int $semilla, int $porcentaje): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $consulta = $this->pdo->prepare(
+                'SELECT id, nombre, precio FROM productos
+                 WHERE semilla = :semilla ORDER BY id FOR UPDATE'
+            );
+            $consulta->execute(['semilla' => $semilla]);
+            $antes = $consulta->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmt = $this->pdo->prepare(
+                'UPDATE productos SET precio = ROUND(precio * (1 + :porcentaje / 100), 2)
+                 WHERE semilla = :semilla'
+            );
+            $stmt->bindValue(':porcentaje', $porcentaje, PDO::PARAM_INT);
+            $stmt->bindValue(':semilla', $semilla, PDO::PARAM_INT);
+            $stmt->execute();
+            $filasActualizadas = $stmt->rowCount();
+
+            $consulta->execute(['semilla' => $semilla]);
+            $despues = $consulta->fetchAll(PDO::FETCH_ASSOC);
+            $this->pdo->commit();
+            return compact('antes', 'despues', 'filasActualizadas');
+        } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
     public function insertar(int $semilla): array
     {
         $total = ($semilla % 5) + 3;
