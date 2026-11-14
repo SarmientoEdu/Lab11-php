@@ -11,9 +11,9 @@
 
 // ─── Parámetros de conexión ───────────────────────────────────────────────────
 define('DB_HOST',    getenv('DB_HOST') ?: '127.0.0.1'); // TCP/IP (compatible con XAMPP y CI)
-define('DB_PORT',    getenv('DB_PORT') ?: '3306');
+define('DB_PORT',    getenv('DB_PORT') ?: '8889');
 define('DB_USER',    getenv('DB_USER') ?: 'root');
-define('DB_PASS',    getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''); // Sin contraseña por defecto
+define('DB_PASS',    getenv('DB_PASS') !== false ? getenv('DB_PASS') : 'root'); // Sin contraseña por defecto
 define('DB_NAME',    getenv('DB_NAME') ?: 'tienda_lab11');
 define('DB_CHARSET', 'utf8mb4');
 

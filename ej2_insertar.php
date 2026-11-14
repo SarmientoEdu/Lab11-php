@@ -1,44 +1,46 @@
 <?php
 /**
  * ej2_insertar.php — Ejercicio 2: Insertar datos con sentencia preparada
- * Lab 11 · Desarrollo Web · Taller #5
+ * Lab 11 · Desarrollo Web · Lab 11
  */
 
 require_once 'db_config.php';
 
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 114; // ← CAMBIA ESTO (Tu semilla)
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
 // ─── Cálculos derivados de la semilla ─────────────────────────────────────────
 // TODO: Calcula cuántos productos insertar: (semilla % 5) + 3
-$totalProductos = 0; // ← IMPLEMENTA LA FÓRMULA
+$totalProductos = ($semilla % 5) + 3; // ← IMPLEMENTA LA FÓRMULA
 
 try {
     $pdo = obtenerConexion();
 
     // TODO: Prepara la sentencia INSERT con placeholders
-    // Columnas: nombre, precio, stock, semilla
-    $stmt = null; // ← REEMPLAZA con $pdo->prepare(...)
+    $stmt = $pdo->prepare("INSERT INTO productos (nombre, precio, stock, semilla) 
+                           VALUES (:nombre, :precio, :stock, :semilla)"); // ← REEMPLAZA con $pdo->prepare(...)
 
     $productosInsertados = [];
 
     for ($i = 0; $i < $totalProductos; $i++) {
         // TODO: Calcula los valores para cada producto usando la semilla:
-        //   nombre: "Producto_" . ($semilla * ($i + 1))
-        //   precio: round($semilla * 1.5 + $i * 3.75, 2)
-        //   stock:  ($semilla + $i * 7) % 50 + 1
-        $nombre = ''; // ← IMPLEMENTA
-        $precio = 0;  // ← IMPLEMENTA
-        $stock  = 0;  // ← IMPLEMENTA
+        $nombre = "Producto_" . ($semilla * ($i + 1)); // ← IMPLEMENTA
+        $precio = round($semilla * 1.5 + $i * 3.75, 2); // ← IMPLEMENTA
+        $stock  = ($semilla + $i * 7) % 50 + 1; // ← IMPLEMENTA
 
         // TODO: Ejecuta la sentencia preparada con los valores calculados
-        // $stmt->execute([...])
+        $stmt->execute([
+            ':nombre'  => $nombre,
+            ':precio'  => $precio,
+            ':stock'   => $stock,
+            ':semilla' => $semilla
+        ]);
 
         // TODO: Guarda el id del último insertado
-        $id = 0; // ← usa $pdo->lastInsertId()
+        $id = (int)$pdo->lastInsertId(); // ← usa $pdo->lastInsertId()
 
         $productosInsertados[] = compact('id', 'nombre', 'precio', 'stock');
     }
@@ -57,8 +59,9 @@ try {
         </style>
     </head>
     <body>
-        <h1>Ejercicio 2 — Productos Insertados</h1>
-        <table>
+        <!-- Ajustado para coincidir EXACTAMENTE con el formato de la guía -->
+        <h2>Productos insertados</h2>
+        <table border="1">
             <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
             <?php foreach ($productosInsertados as $p): ?>
             <tr>
