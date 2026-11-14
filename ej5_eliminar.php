@@ -7,33 +7,67 @@
 require_once 'db_config.php';
 
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 534;
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
 // TODO: Calcula el umbral: (semilla % 10) + 1
-$umbral = 0; // ← IMPLEMENTA LA FÓRMULA
+$umbral = ($semilla % 10) + 1;
 
 try {
     $pdo = obtenerConexion();
 
     // ─── Paso 1: Busca qué se va a eliminar ───────────────────────────────────
     // TODO: SELECT id, nombre, stock WHERE semilla = ? AND stock < ?
-    $aEliminar = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $stmtSelect = $pdo->prepare('SELECT id, nombre, stock FROM productos WHERE semilla = ? AND stock < ?');
+    $stmtSelect->execute([$semilla, $umbral]);
+    $aEliminar = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
 
     if (empty($aEliminar)) {
         // TODO: Muestra el mensaje: "No hay productos con stock menor a N"
-        echo '<p>No hay productos con stock menor a ' . $umbral . '</p>';
+        $stmtCount = $pdo->prepare('SELECT COUNT(*) FROM productos WHERE semilla = ?');
+        $stmtCount->execute([$semilla]);
+        $restantes = (int) $stmtCount->fetchColumn();
+        ?>
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Ej5 - DELETE</title>
+            <style>
+                body   { font-family: Arial, sans-serif; margin: 40px; }
+                .resumen { background: #fce4ec; padding: 15px; margin-top: 20px; border-radius: 6px; }
+            </style>
+        </head>
+        <body>
+            <h1>Ejercicio 5 — Eliminar Productos</h1>
+            <p>Estudiante: <strong>Adrián Maldonado</strong> | Semilla: <strong><?= (int)$semilla ?></strong></p>
+            <p>Umbral de stock: <strong><?= $umbral ?></strong>
+               (se eliminan productos con stock &lt; <?= $umbral ?>)</p>
+            <p>No hay productos con stock menor a <?= $umbral ?></p>
+            <div class="resumen">
+                <p>Total eliminados: <strong>0</strong></p>
+                <p>Productos restantes: <strong><?= $restantes ?></strong></p>
+                <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
+                    — <?= htmlspecialchars($fechaHora) ?></p>
+            </div>
+        </body>
+        </html>
+        <?php
     } else {
         // ─── Paso 2: Elimina ──────────────────────────────────────────────────
         // TODO: DELETE FROM productos WHERE semilla = ? AND stock < ?
         // Usa sentencia preparada
-        $totalEliminados = 0; // ← $stmt->rowCount()
+        $stmtDelete = $pdo->prepare('DELETE FROM productos WHERE semilla = ? AND stock < ?');
+        $stmtDelete->execute([$semilla, $umbral]);
+        $totalEliminados = $stmtDelete->rowCount();
 
         // ─── Paso 3: Cuenta los restantes ────────────────────────────────────
         // TODO: SELECT COUNT(*) FROM productos WHERE semilla = ?
-        $restantes = 0; // ← fetchColumn()
+        $stmtCount = $pdo->prepare('SELECT COUNT(*) FROM productos WHERE semilla = ?');
+        $stmtCount->execute([$semilla]);
+        $restantes = (int) $stmtCount->fetchColumn();
 
         ?>
         <!DOCTYPE html>
@@ -51,6 +85,7 @@ try {
         </head>
         <body>
             <h1>Ejercicio 5 — Eliminar Productos</h1>
+            <p>Estudiante: <strong>Adrián Maldonado</strong> | Semilla: <strong><?= (int)$semilla ?></strong></p>
             <p>Umbral de stock: <strong><?= $umbral ?></strong>
                (se eliminan productos con stock &lt; <?= $umbral ?>)</p>
             <h2>Productos eliminados</h2>
@@ -68,7 +103,7 @@ try {
                 <p>Total eliminados: <strong><?= $totalEliminados ?></strong></p>
                 <p>Productos restantes: <strong><?= $restantes ?></strong></p>
                 <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-                   — <?= htmlspecialchars($fechaHora) ?></p>
+                    — <?= htmlspecialchars($fechaHora) ?></p>
             </div>
         </body>
         </html>
