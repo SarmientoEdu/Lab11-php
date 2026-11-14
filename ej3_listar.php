@@ -7,26 +7,29 @@
 require_once 'db_config.php';
 
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 356; // ← CAMBIA ESTO
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
 try {
     $pdo = obtenerConexion();
+    $stmt = $pdo->prepare("SELECT id, nombre, precio, stock FROM productos WHERE semilla = :semilla ORDER BY precio ASC");
+    $stmt->execute([':semilla' => $semilla]);
 
     // TODO: Prepara y ejecuta una consulta SELECT que:
     //   - Seleccione todos los productos WHERE semilla = :semilla
     //   - Ordene por precio ASC
     //   - Use fetchAll(PDO::FETCH_ASSOC)
-    $productos = []; // ← REEMPLAZA con el resultado real
+    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC); // ← REEMPLAZA con el resultado real
+    
 
     // TODO: Calcula en PHP (NO en SQL):
     //   - Precio promedio usando array_sum() y count()
     //   - Stock total usando array_sum con array_column()
-    $precios       = []; // ← array_column($productos, 'precio')
-    $precioPromedio = 0;  // ← IMPLEMENTA con array_sum / count
-    $stockTotal    = 0;   // ← IMPLEMENTA con array_sum / array_column
+    $precios       = array_column($productos, 'precio'); // ← array_column($productos, 'precio')
+    $precioPromedio = count($precios) > 0 ? array_sum($precios) / count($precios) : 0;  // ← IMPLEMENTA con array_sum / count
+    $stockTotal    = array_sum(array_column($productos, 'stock'));  // ← IMPLEMENTA con array_sum / array_column
 
     ?>
     <!DOCTYPE html>
@@ -64,6 +67,7 @@ try {
             <p>Stock total: <strong><?= $stockTotal ?> unidades</strong></p>
             <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
                — <?= htmlspecialchars($fechaHora) ?></p>
+            <p>Estudiante: Rodriguez Camilo — Semilla: <?= $semilla ?></p>
         </div>
     </body>
     </html>
