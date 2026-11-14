@@ -7,21 +7,23 @@
 require_once 'db_config.php';
 
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 356; // ← CAMBIA ESTO
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
 // ─── Cálculos derivados de la semilla ─────────────────────────────────────────
 // TODO: Calcula cuántos productos insertar: (semilla % 5) + 3
-$totalProductos = 0; // ← IMPLEMENTA LA FÓRMULA
+$totalProductos = ($semilla % 5) + 3; // ← IMPLEMENTA LA FÓRMULA
 
 try {
     $pdo = obtenerConexion();
+    $del = $pdo->prepare("DELETE FROM productos WHERE semilla = :semilla");
+$del->execute([':semilla' => $semilla]);
 
     // TODO: Prepara la sentencia INSERT con placeholders
     // Columnas: nombre, precio, stock, semilla
-    $stmt = null; // ← REEMPLAZA con $pdo->prepare(...)
+    $stmt = $pdo->prepare("INSERT INTO productos (nombre, precio, stock, semilla) VALUES (:nombre, :precio, :stock, :semilla)"); // ← REEMPLAZA con $pdo->prepare(...)
 
     $productosInsertados = [];
 
@@ -30,15 +32,20 @@ try {
         //   nombre: "Producto_" . ($semilla * ($i + 1))
         //   precio: round($semilla * 1.5 + $i * 3.75, 2)
         //   stock:  ($semilla + $i * 7) % 50 + 1
-        $nombre = ''; // ← IMPLEMENTA
-        $precio = 0;  // ← IMPLEMENTA
-        $stock  = 0;  // ← IMPLEMENTA
+        $nombre = "Producto_" . ($semilla * ($i + 1)); // ← IMPLEMENTA
+        $precio = round($semilla * 1.5 + $i * 3.75, 2);  // ← IMPLEMENTA
+        $stock  = ($semilla + $i * 7) % 50 + 1;  // ← IMPLEMENTA
 
         // TODO: Ejecuta la sentencia preparada con los valores calculados
         // $stmt->execute([...])
-
+        $stmt->execute([
+        ':nombre'  => $nombre,
+        ':precio'  => $precio,
+        ':stock'   => $stock,
+        ':semilla' => $semilla,
+    ]);
         // TODO: Guarda el id del último insertado
-        $id = 0; // ← usa $pdo->lastInsertId()
+        $id = (int)$pdo->lastInsertId(); // ← usa $pdo->lastInsertId()
 
         $productosInsertados[] = compact('id', 'nombre', 'precio', 'stock');
     }
@@ -72,7 +79,8 @@ try {
         </table>
         <p>Total insertado: <strong><?= count($productosInsertados) ?> registros</strong></p>
         <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-           — <?= htmlspecialchars($fechaHora) ?></p>
+        — <?= htmlspecialchars($fechaHora) ?></p>
+         <p>Estudiante: Rodriguez Camilo — Semilla: <?= $semilla ?></p>
     </body>
     </html>
     <?php
