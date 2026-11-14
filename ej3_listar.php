@@ -7,7 +7,7 @@
 require_once 'db_config.php';
 
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 534; // ← CAMBIA ESTO
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
@@ -19,14 +19,20 @@ try {
     //   - Seleccione todos los productos WHERE semilla = :semilla
     //   - Ordene por precio ASC
     //   - Use fetchAll(PDO::FETCH_ASSOC)
-    $productos = []; // ← REEMPLAZA con el resultado real
+
+    $sql = 'SELECT * FROM productos WHERE semilla = :semilla ORDER BY precio ASC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':semilla' => $semilla]);
+
+    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // TODO: Calcula en PHP (NO en SQL):
     //   - Precio promedio usando array_sum() y count()
     //   - Stock total usando array_sum con array_column()
-    $precios       = []; // ← array_column($productos, 'precio')
-    $precioPromedio = 0;  // ← IMPLEMENTA con array_sum / count
-    $stockTotal    = 0;   // ← IMPLEMENTA con array_sum / array_column
+    $precios = array_column($productos, 'precio');
+    $totalProductos = count($productos);
+    $precioPromedio = $totalProductos > 0 ? array_sum($precios) / $totalProductos : 0;
+    $stockTotal = array_sum(array_column($productos, 'stock'));
 
     ?>
     <!DOCTYPE html>
@@ -46,24 +52,24 @@ try {
     </head>
     <body>
         <h1>Ejercicio 3 — Listado de Productos</h1>
+        <p>Estudiante: <strong>Adrián Maldonado</strong> | Semilla: <strong><?= (int) $semilla ?></strong></p>
         <table>
-            <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
+            <<tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
             <?php foreach ($productos as $p): ?>
             <tr>
-                <td><?= (int)$p['id'] ?></td>
+                <td><?= (int) $p['id'] ?></td>
                 <td><?= htmlspecialchars($p['nombre']) ?></td>
-                <td>B/. <?= number_format((float)$p['precio'], 2) ?></td>
-                <td><?= (int)$p['stock'] ?></td>
+                <td>B/. <?= number_format((float) $p['precio'], 2, '.', '') ?></td>
+                <td><?= (int) $p['stock'] ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
         <div class="resumen">
-            <p>Total de productos: <strong><?= count($productos) ?></strong></p>
-            <!-- TODO: Muestra precio promedio con format B/. XXXX.XX -->
-            <p>Precio promedio: <strong>B/. <?= number_format($precioPromedio, 2) ?></strong></p>
-            <p>Stock total: <strong><?= $stockTotal ?> unidades</strong></p>
+            <p>Total de productos: <strong><?= $totalProductos ?></strong></p>
+            <p>Precio promedio: <strong>B/. <?= number_format((float) $precioPromedio, 2, '.', '') ?></strong></p>
+            <p>Stock total: <strong><?= (int) $stockTotal ?> unidades</strong></p>
             <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-               — <?= htmlspecialchars($fechaHora) ?></p>
+                — <?= htmlspecialchars($fechaHora) ?></p>
         </div>
     </body>
     </html>
