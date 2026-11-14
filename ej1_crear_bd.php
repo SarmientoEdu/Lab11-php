@@ -3,18 +3,13 @@
  * ej1_crear_bd.php — Ejercicio 1: Crear base de datos y tabla
  * Lab 11 · Desarrollo Web · Lab11
  *
- * INSTRUCCIONES:
- * 1. Reemplaza TU_SEMILLA con los últimos 3 dígitos de tu cédula.
- * 2. Implementa las secciones marcadas con TODO.
- * 3. No uses mysqli_* ni frameworks.
- * 4. Usa PDO con try/catch para el manejo de errores.
+ * Crea la estructura de la tienda sin modificar los productos existentes.
  */
 
-require_once 'db_config.php';
+require_once __DIR__ . '/db_config.php';
 
 // ─── Semilla personal ─────────────────────────────────────────────────────────
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula (solo número)
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 343;
 
 // ─── Datos de control personales (NO modificar estas líneas) ─────────────────
 $computadora   = gethostname();
@@ -23,21 +18,17 @@ $fechaHora     = date('Y-m-d H:i:s');
 // ─── Conexión para crear la base de datos ─────────────────────────────────────
 // NOTA: Para crear la BD necesitamos conectarnos SIN especificar dbname
 try {
-    // TODO: Crear objeto PDO sin dbname usando las constantes de db_config.php:
-    //       $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=' . DB_CHARSET;
-    //       $pdo = new PDO($dsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-    $pdo = null; // ← REEMPLAZA null con la conexión correcta
-
-    // TODO: Ejecutar SQL para crear la base de datos si no existe
-    // SQL: CREATE DATABASE IF NOT EXISTS tienda_lab11 DEFAULT CHARACTER SET utf8mb4
-
-    // TODO: Seleccionar la base de datos recién creada
-    // SQL: USE tienda_lab11
-
-    // TODO: Ejecutar SQL para crear la tabla productos si no existe
-    // La tabla debe tener: id (PK AI), nombre VARCHAR(100), precio DECIMAL(10,2),
-    //                      stock INT DEFAULT 0, semilla INT
-    // Todas las columnas excepto id deben ser NOT NULL
+    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=' . DB_CHARSET;
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $pdo->exec('CREATE DATABASE IF NOT EXISTS tienda_lab11 DEFAULT CHARACTER SET utf8mb4');
+    $pdo->exec('USE tienda_lab11');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS productos (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(100) NOT NULL,
+        precio DECIMAL(10,2) NOT NULL,
+        stock INT NOT NULL DEFAULT 0,
+        semilla INT NOT NULL
+    ) ENGINE=InnoDB');
 
     // ─── Salida HTML ──────────────────────────────────────────────────────────
     ?>
@@ -45,21 +36,22 @@ try {
     <html lang="es">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Ej1 - Crear BD</title>
         <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
+            body { font-family: Arial, sans-serif; margin: 40px; max-width: 1000px; }
             .ok  { color: green; font-weight: bold; }
             .info { background: #f0f4ff; padding: 15px; border-radius: 6px; }
         </style>
     </head>
     <body>
         <h1>Ejercicio 1 — Crear Base de Datos</h1>
+        <p>Estudiante: <strong>Alejandro Sáenz</strong></p>
         <div class="info">
-            <!-- TODO: Reemplaza los valores ??? con las variables correctas -->
-            <p>Base de datos: <strong>???</strong></p>
-            <p>Tabla: <strong>???</strong></p>
+            <p>Base de datos: <strong>tienda_lab11</strong></p>
+            <p>Tabla: <strong>productos</strong></p>
             <p class="ok">Estado: Creada correctamente</p>
-            <p>Semilla usada: <strong>???</strong></p>
+            <p>Semilla usada: <strong><?= $semilla ?></strong></p>
             <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
                — <?= htmlspecialchars($fechaHora) ?></p>
         </div>
@@ -68,6 +60,6 @@ try {
     <?php
 
 } catch (PDOException $e) {
-    // TODO: Muestra el mensaje de error de forma segura
+    http_response_code(500);
     echo '<p style="color:red">Error de conexión: ' . htmlspecialchars($e->getMessage()) . '</p>';
 }

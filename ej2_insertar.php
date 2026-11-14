@@ -1,53 +1,28 @@
 <?php
 /**
  * ej2_insertar.php — Ejercicio 2: Insertar datos con sentencia preparada
- * Lab 11 · Desarrollo Web · Taller #5
+ * Lab 11 · Desarrollo Web
  */
 
-require_once 'db_config.php';
+require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/Productos.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 343;
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
-// ─── Cálculos derivados de la semilla ─────────────────────────────────────────
-// TODO: Calcula cuántos productos insertar: (semilla % 5) + 3
-$totalProductos = 0; // ← IMPLEMENTA LA FÓRMULA
-
 try {
     $pdo = obtenerConexion();
-
-    // TODO: Prepara la sentencia INSERT con placeholders
-    // Columnas: nombre, precio, stock, semilla
-    $stmt = null; // ← REEMPLAZA con $pdo->prepare(...)
-
-    $productosInsertados = [];
-
-    for ($i = 0; $i < $totalProductos; $i++) {
-        // TODO: Calcula los valores para cada producto usando la semilla:
-        //   nombre: "Producto_" . ($semilla * ($i + 1))
-        //   precio: round($semilla * 1.5 + $i * 3.75, 2)
-        //   stock:  ($semilla + $i * 7) % 50 + 1
-        $nombre = ''; // ← IMPLEMENTA
-        $precio = 0;  // ← IMPLEMENTA
-        $stock  = 0;  // ← IMPLEMENTA
-
-        // TODO: Ejecuta la sentencia preparada con los valores calculados
-        // $stmt->execute([...])
-
-        // TODO: Guarda el id del último insertado
-        $id = 0; // ← usa $pdo->lastInsertId()
-
-        $productosInsertados[] = compact('id', 'nombre', 'precio', 'stock');
-    }
+    $repositorio = new Productos($pdo);
+    $productosInsertados = $repositorio->insertar($semilla);
 
     ?>
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Ej2 - INSERT</title>
         <style>
             body  { font-family: Arial, sans-serif; margin: 40px; }
@@ -58,13 +33,13 @@ try {
     </head>
     <body>
         <h1>Ejercicio 2 — Productos Insertados</h1>
+        <p>Estudiante: <strong>Alejandro Sáenz</strong> | Semilla usada: <strong><?= $semilla ?></strong></p>
         <table>
             <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
             <?php foreach ($productosInsertados as $p): ?>
             <tr>
                 <td><?= (int)$p['id'] ?></td>
                 <td><?= htmlspecialchars($p['nombre']) ?></td>
-                <!-- TODO: Formatea precio como B/. XXXX.XX -->
                 <td>B/. <?= number_format($p['precio'], 2) ?></td>
                 <td><?= (int)$p['stock'] ?></td>
             </tr>
@@ -73,10 +48,12 @@ try {
         <p>Total insertado: <strong><?= count($productosInsertados) ?> registros</strong></p>
         <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
            — <?= htmlspecialchars($fechaHora) ?></p>
+        <p>Cada ejecución agrega un lote de productos. Para consultar los guardados, abra el ejercicio 3.</p>
     </body>
     </html>
     <?php
 
 } catch (PDOException $e) {
+    http_response_code(500);
     echo '<p style="color:red">Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
 }
