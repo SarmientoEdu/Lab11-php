@@ -1,48 +1,41 @@
-# Lab 11: Acceso a Base de Datos en PHP
+# Lab 11 Acceso a base de datos en PHP
 
-**Curso:** Desarrollo Web | **Módulo:** IV | **Profesor:** SarmientoEdu
+Curso: Desarrollo Web, UTP. Profesor: SarmientoEdu.
 
----
+Estudiante: Alejandro Sáenz. Semilla: **343**.
+Repositorio base: https://github.com/SarmientoEdu/Lab11-php
+Rama de trabajo: `lab11-saenz-alejandro`.
 
-## ¿Qué hay aquí?
+## Ejecución local
 
-Este es el repositorio base del Lab # 11. Contiene el esqueleto de los 5 ejercicios que debes completar.
+1. Iniciar Apache y MySQL de XAMPP con PHP 8 o superior y la extensión `pdo_mysql`.
+2. Colocar esta carpeta dentro de `xampp/htdocs/Lab11-php`.
+3. Revisar `db_config.php`: por defecto usa `127.0.0.1:3306`, usuario `root`, contraseña vacía y base `tienda_lab11`. Se pueden proporcionar `DB_HOST`, `DB_PORT`, `DB_USER` y `DB_PASS` como variables de entorno. No guardar credenciales de producción en el repositorio.
+4. Abrir los ejercicios en el orden indicado. Las páginas muestran el nombre del estudiante, la semilla, el equipo y la fecha real de ejecución en hora de Panamá.
 
-## Instrucciones rápidas 
+| Orden | Página | Operación |
+| --- | --- | --- |
+| 1 | `ej1_crear_bd.php` | Crea `tienda_lab11` y la tabla `productos` si no existen. Conserva los registros existentes. |
+| 2 | `ej2_insertar.php` | Inserta un lote calculado mediante la semilla y sentencias preparadas. Cada ejecución agrega un lote nuevo. |
+| 3 | `ej3_listar.php` | Consulta únicamente la semilla correspondiente, ordena por precio y calcula en PHP el promedio y el stock total. |
+| 4 | `ej4_actualizar.php` | Aplica el porcentaje a los precios actuales. Cada ejecución vuelve a aplicar el incremento. |
+| 5 | `ej5_eliminar.php` | Consulta y elimina exclusivamente los productos de esa semilla con stock estrictamente menor al umbral; verifica el conteo restante. |
 
-1. **Haz fork** de este repo.
-2. **Habilita Actions** en tu fork (pestaña Actions → botón verde).
-3. **Clona** tu fork y crea la rama `lab11-apellido-nombre`.
-4. **Configura tu identidad Git:**
-   ```
-   git config user.name "Tu Nombre"
-   git config user.email "tu@email.com"
-   ```
-5. **Abre `ej1_crear_bd.php`** y reemplaza `$semilla = 0` con los últimos 3 dígitos de tu cédula.
-6. Repite para `ej2_insertar.php` ... `ej5_eliminar.php`.
-7. Completa los TODO de cada archivo.
-8. Guarda una captura en `capturas/ej1.png` ... `capturas/ej5.png`.
-9. Haz commit por cada ejercicio con el prefijo correcto (`ej1:`, `ej2:`, ...).
-10. Haz push y abre un **Pull Request** hacia `SarmientoEdu/Lab11-php:main`.
+La clase `Productos` separa las consultas PDO de la salida HTML. Las inserciones, actualizaciones y eliminaciones usan transacciones y revierten sus cambios si ocurre un error de base de datos.
 
-## Archivos
+## Resultados de una ejecución inicial con la semilla 343
 
-| Archivo | Descripción |
-|---|---|
-| `db_config.php` | Configuración PDO compartida |
-| `ej1_crear_bd.php` | Ejercicio 1: Crear BD y tabla |
-| `ej2_insertar.php` | Ejercicio 2: INSERT con sentencia preparada |
-| `ej3_listar.php` | Ejercicio 3: SELECT y listado HTML |
-| `ej4_actualizar.php` | Ejercicio 4: UPDATE de precios |
-| `ej5_eliminar.php` | Ejercicio 5: DELETE por umbral |
-| `capturas/` | Aquí van tus capturas de pantalla |
-| `autograde.php` | ⚠️ NO MODIFICAR |
-| `.github/workflows/autograde.yml` | ⚠️ NO MODIFICAR |
+- Se insertan 6 productos, con precios desde B/. 514.50 hasta B/. 533.25.
+- El listado inicial muestra un promedio de B/. 523.88 y un stock total de 119 unidades.
+- El incremento es del 8 %. El primer precio pasa de B/. 514.50 a B/. 555.66.
+- El umbral es 4: se elimina `Producto_686`, cuyo stock es 1, y quedan 5 productos.
 
-## ¿Cómo saber tu nota?
+Estos valores se calculan a partir de la semilla y los registros de la base. Las páginas no presentan resultados fijos.
 
-Después de abrir el PR, ve a la pestaña **Checks** → **Calificar Lab11** → **Summary**.
+## Evidencias y validación
 
----
+Las cinco capturas reales están en `capturas/ej1.jpg` a `capturas/ej5.jpg`, a una resolución de 1280 × 800. El enunciado y el evaluador admiten JPG y PNG.
 
-> Lee el documento completo del taller antes de empezar.
+Se probaron los cinco ejercicios con PHP 8.2 y una base local MariaDB 11.4 mediante PDO MySQL: 540 comprobaciones independientes, con 16 semillas, incluyendo 343. Las verificaciones contrastaron la salida HTML con los registros persistidos, el redondeo monetario, la separación entre semillas, el caso sin productos y el límite estricto del stock.
+
+El evaluador oficial se conserva sin cambios. Su ejecución reinicia la base `tienda_lab11`, por lo que debe utilizarse sobre datos de prueba. La ejecución local obtuvo 100/100 en los ejercicios y capturas; sus observaciones de integridad se deben revisar aparte en el reporte real y posteriormente en GitHub Actions.

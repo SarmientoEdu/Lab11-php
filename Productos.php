@@ -52,6 +52,36 @@ class Productos
         }
     }
 
+    public function eliminarStockBajo(int $semilla, int $umbral): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $consulta = $this->pdo->prepare(
+                'SELECT id, nombre, stock FROM productos
+                 WHERE semilla = :semilla AND stock < :umbral ORDER BY id FOR UPDATE'
+            );
+            $consulta->execute(['semilla' => $semilla, 'umbral' => $umbral]);
+            $eliminados = $consulta->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmt = $this->pdo->prepare(
+                'DELETE FROM productos WHERE semilla = :semilla AND stock < :umbral'
+            );
+            $stmt->execute(['semilla' => $semilla, 'umbral' => $umbral]);
+            $totalEliminados = $stmt->rowCount();
+
+            $conteo = $this->pdo->prepare('SELECT COUNT(*) FROM productos WHERE semilla = :semilla');
+            $conteo->execute(['semilla' => $semilla]);
+            $restantes = (int) $conteo->fetchColumn();
+            $this->pdo->commit();
+            return compact('eliminados', 'totalEliminados', 'restantes');
+        } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
     public function insertar(int $semilla): array
     {
         $total = ($semilla % 5) + 3;
