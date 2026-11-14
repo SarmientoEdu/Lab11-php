@@ -1,38 +1,47 @@
 <?php
 /**
  * ej4_actualizar.php — Ejercicio 4: Actualizar precios
- * Lab 11 · Desarrollo Web · Taller #5
+ * Lab 11 · Desarrollo Web
  */
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 876; // ← los mismos últimos 3 dígitos de tu cédula que en los otros ejercicios
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
-// TODO: Calcula el porcentaje de incremento: (semilla % 20) + 5
-$porcentaje = 0; // ← IMPLEMENTA LA FÓRMULA
+// porcentaje = (semilla % 20) + 5
+$porcentaje = ($semilla % 20) + 5;
+$factor     = 1 + $porcentaje / 100;
+
+function dinero($valor): string {
+    return 'B/. ' . number_format((float)$valor, 2, '.', '');
+}
 
 try {
     $pdo = obtenerConexion();
 
-    // ─── ANTES: obtén los precios actuales ────────────────────────────────────
-    // TODO: SELECT id, nombre, precio WHERE semilla = ? ORDER BY id
-    $antes = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    // ANTES
+    $stmtSelect = $pdo->prepare(
+        "SELECT id, nombre, precio FROM productos WHERE semilla = ? ORDER BY id"
+    );
+    $stmtSelect->execute([$semilla]);
+    $antes = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
 
-    // ─── UPDATE: aplica el incremento ─────────────────────────────────────────
-    // TODO: Prepara un UPDATE que calcule:
-    //   nuevo_precio = precio * (1 + porcentaje / 100)
-    //   WHERE semilla = :semilla
-    // Usa sentencia preparada PDO
-    $filasActualizadas = 0; // ← $stmt->rowCount()
+    // UPDATE
+    $stmtUpdate = $pdo->prepare(
+        "UPDATE productos SET precio = ROUND(precio * ?, 2) WHERE semilla = ?"
+    );
+    $stmtUpdate->execute([$factor, $semilla]);
+    $filasActualizadas = $stmtUpdate->rowCount();
 
-    // ─── DESPUÉS: obtén los precios nuevos ────────────────────────────────────
-    // TODO: Mismo SELECT de antes pero ahora los valores son los nuevos
-    $despues = []; // ← fetchAll(PDO::FETCH_ASSOC)
-
+    // DESPUÉS (indexado por id)
+    $stmtSelect->execute([$semilla]);
+    $despues = [];
+    foreach ($stmtSelect->fetchAll(PDO::FETCH_ASSOC) as $fila) {
+        $despues[$fila['id']] = $fila['precio'];
+    }
     ?>
     <!DOCTYPE html>
     <html lang="es">
@@ -44,33 +53,32 @@ try {
             table  { border-collapse: collapse; width: 100%; }
             th, td { border: 1px solid #ccc; padding: 8px; }
             th     { background: #e65100; color: white; }
+            tr:nth-child(even) td { background: #f5f5f5; }
             .nuevo { color: #2e7d32; font-weight: bold; }
         </style>
     </head>
     <body>
         <h1>Ejercicio 4 — Actualización de Precios</h1>
-        <p>Incremento aplicado: <strong><?= $porcentaje ?>%</strong></p>
+        <p>Estudiante: Ceballos Sergio | Semilla: <?= $semilla ?></p>
+
+        <p>Incremento aplicado: <?= $porcentaje ?>%</p>
+
         <table>
             <tr><th>Nombre</th><th>Precio anterior</th><th>Precio nuevo</th></tr>
-            <?php
-            // TODO: Combina $antes y $despues para mostrar la comparación
-            foreach ($antes as $i => $prod):
-                $precioNuevo = isset($despues[$i]) ? $despues[$i]['precio'] : 0;
-            ?>
+            <?php foreach ($antes as $prod): ?>
             <tr>
                 <td><?= htmlspecialchars($prod['nombre']) ?></td>
-                <td>B/. <?= number_format((float)$prod['precio'], 2) ?></td>
-                <td class="nuevo">B/. <?= number_format((float)$precioNuevo, 2) ?></td>
+                <td><?= dinero($prod['precio']) ?></td>
+                <td class="nuevo"><?= dinero($despues[$prod['id']] ?? 0) ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
-        <p>Total filas actualizadas: <strong><?= $filasActualizadas ?></strong></p>
-        <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
-           — <?= htmlspecialchars($fechaHora) ?></p>
+
+        <p>Total filas actualizadas: <?= $filasActualizadas ?></p>
+        <p>Ejecutado en: <?= htmlspecialchars($computadora) ?> - <?= htmlspecialchars($fechaHora) ?></p>
     </body>
     </html>
     <?php
-
 } catch (PDOException $e) {
     echo '<p style="color:red">Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
 }
