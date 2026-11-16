@@ -2,36 +2,40 @@
 /**
  * ej4_actualizar.php — Ejercicio 4: Actualizar precios
  * Lab 11 · Desarrollo Web · Taller #5
+ * Estudiante: Garcia Yaser
  */
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 940;
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
-// TODO: Calcula el porcentaje de incremento: (semilla % 20) + 5
-$porcentaje = 0; // ← IMPLEMENTA LA FÓRMULA
+$porcentaje = ($semilla % 20) + 5;
 
 try {
     $pdo = obtenerConexion();
 
-    // ─── ANTES: obtén los precios actuales ────────────────────────────────────
-    // TODO: SELECT id, nombre, precio WHERE semilla = ? ORDER BY id
-    $antes = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    // ─── ANTES ────────────────────────────────────────────────────────────────
+    $sel = $pdo->prepare(
+        "SELECT id, nombre, precio FROM productos WHERE semilla = ? ORDER BY id"
+    );
+    $sel->execute([$semilla]);
+    $antes = $sel->fetchAll(PDO::FETCH_ASSOC);
 
-    // ─── UPDATE: aplica el incremento ─────────────────────────────────────────
-    // TODO: Prepara un UPDATE que calcule:
-    //   nuevo_precio = precio * (1 + porcentaje / 100)
-    //   WHERE semilla = :semilla
-    // Usa sentencia preparada PDO
-    $filasActualizadas = 0; // ← $stmt->rowCount()
+    // ─── UPDATE ───────────────────────────────────────────────────────────────
+    $upd = $pdo->prepare(
+        "UPDATE productos
+         SET precio = ROUND(precio * (1 + :porc / 100), 2)
+         WHERE semilla = :semilla"
+    );
+    $upd->execute([':porc' => $porcentaje, ':semilla' => $semilla]);
+    $filasActualizadas = $upd->rowCount();
 
-    // ─── DESPUÉS: obtén los precios nuevos ────────────────────────────────────
-    // TODO: Mismo SELECT de antes pero ahora los valores son los nuevos
-    $despues = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    // ─── DESPUÉS ──────────────────────────────────────────────────────────────
+    $sel->execute([$semilla]);
+    $despues = $sel->fetchAll(PDO::FETCH_ASSOC);
 
     ?>
     <!DOCTYPE html>
@@ -48,19 +52,19 @@ try {
         </style>
     </head>
     <body>
-        <h1>Ejercicio 4 — Actualización de Precios</h1>
+        <h1>Ejercicio 4 — Actualización de Precios (Garcia Yaser)</h1>
+        <p>Semilla usada: <strong><?= (int)$semilla ?></strong></p>
         <p>Incremento aplicado: <strong><?= $porcentaje ?>%</strong></p>
         <table>
             <tr><th>Nombre</th><th>Precio anterior</th><th>Precio nuevo</th></tr>
             <?php
-            // TODO: Combina $antes y $despues para mostrar la comparación
             foreach ($antes as $i => $prod):
                 $precioNuevo = isset($despues[$i]) ? $despues[$i]['precio'] : 0;
             ?>
             <tr>
                 <td><?= htmlspecialchars($prod['nombre']) ?></td>
-                <td>B/. <?= number_format((float)$prod['precio'], 2) ?></td>
-                <td class="nuevo">B/. <?= number_format((float)$precioNuevo, 2) ?></td>
+                <td>B/. <?= number_format((float)$prod['precio'], 2, '.', '') ?></td>
+                <td class="nuevo">B/. <?= number_format((float)$precioNuevo, 2, '.', '') ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
