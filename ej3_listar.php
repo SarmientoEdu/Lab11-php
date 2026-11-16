@@ -2,12 +2,12 @@
 /**
  * ej3_listar.php — Ejercicio 3: Seleccionar y mostrar datos
  * Lab 11 · Desarrollo Web · Taller #5
+ * Estudiante: Garcia Yaser
  */
 
 require_once 'db_config.php';
 
-// TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 940;
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
@@ -15,18 +15,19 @@ $fechaHora   = date('Y-m-d H:i:s');
 try {
     $pdo = obtenerConexion();
 
-    // TODO: Prepara y ejecuta una consulta SELECT que:
-    //   - Seleccione todos los productos WHERE semilla = :semilla
-    //   - Ordene por precio ASC
-    //   - Use fetchAll(PDO::FETCH_ASSOC)
-    $productos = []; // ← REEMPLAZA con el resultado real
+    $stmt = $pdo->prepare(
+        "SELECT id, nombre, precio, stock FROM productos
+         WHERE semilla = :semilla ORDER BY precio ASC"
+    );
+    $stmt->execute([':semilla' => $semilla]);
+    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // TODO: Calcula en PHP (NO en SQL):
-    //   - Precio promedio usando array_sum() y count()
-    //   - Stock total usando array_sum con array_column()
-    $precios       = []; // ← array_column($productos, 'precio')
-    $precioPromedio = 0;  // ← IMPLEMENTA con array_sum / count
-    $stockTotal    = 0;   // ← IMPLEMENTA con array_sum / array_column
+    // Cálculos en PHP (no en SQL)
+    $precios        = array_column($productos, 'precio');
+    $precioPromedio = count($productos) > 0
+        ? array_sum($precios) / count($productos)
+        : 0;
+    $stockTotal     = (int)array_sum(array_column($productos, 'stock'));
 
     ?>
     <!DOCTYPE html>
@@ -39,28 +40,27 @@ try {
             table  { border-collapse: collapse; width: 100%; }
             th, td { border: 1px solid #ccc; padding: 8px; }
             th     { background: #2e7d32; color: white; }
-            /* TODO: Agrega estilo para filas alternas (nth-child even) */
             tr:nth-child(even) td { background: #f5f5f5; }
             .resumen { background: #e8f5e9; padding: 15px; margin-top: 20px; border-radius: 6px; }
         </style>
     </head>
     <body>
-        <h1>Ejercicio 3 — Listado de Productos</h1>
+        <h1>Ejercicio 3 — Listado de Productos (Garcia Yaser)</h1>
+        <p>Semilla usada: <strong><?= (int)$semilla ?></strong></p>
         <table>
             <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
             <?php foreach ($productos as $p): ?>
             <tr>
                 <td><?= (int)$p['id'] ?></td>
                 <td><?= htmlspecialchars($p['nombre']) ?></td>
-                <td>B/. <?= number_format((float)$p['precio'], 2) ?></td>
+                <td>B/. <?= number_format((float)$p['precio'], 2, '.', '') ?></td>
                 <td><?= (int)$p['stock'] ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
         <div class="resumen">
             <p>Total de productos: <strong><?= count($productos) ?></strong></p>
-            <!-- TODO: Muestra precio promedio con format B/. XXXX.XX -->
-            <p>Precio promedio: <strong>B/. <?= number_format($precioPromedio, 2) ?></strong></p>
+            <p>Precio promedio: <strong>B/. <?= number_format($precioPromedio, 2, '.', '') ?></strong></p>
             <p>Stock total: <strong><?= $stockTotal ?> unidades</strong></p>
             <p>Ejecutado en: <strong><?= htmlspecialchars($computadora) ?></strong>
                — <?= htmlspecialchars($fechaHora) ?></p>
