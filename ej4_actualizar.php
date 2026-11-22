@@ -7,32 +7,37 @@
 require_once 'db_config.php';
 
 // TODO: Reemplaza 0 con los últimos 3 dígitos de tu cédula
-$semilla = 0; // ← CAMBIA ESTO
+$semilla = 781; // ← CAMBIA ESTO
 
 $computadora = gethostname();
 $fechaHora   = date('Y-m-d H:i:s');
 
 // TODO: Calcula el porcentaje de incremento: (semilla % 20) + 5
-$porcentaje = 0; // ← IMPLEMENTA LA FÓRMULA
+$porcentaje = ($semilla % 20) + 5; // ← IMPLEMENTA LA FÓRMULA
 
 try {
     $pdo = obtenerConexion();
 
     // ─── ANTES: obtén los precios actuales ────────────────────────────────────
     // TODO: SELECT id, nombre, precio WHERE semilla = ? ORDER BY id
-    $antes = []; // ← fetchAll(PDO::FETCH_ASSOC)
+    $stmtSelect = $pdo->prepare("SELECT * FROM productos WHERE semilla = :semilla ORDER BY id ASC");
+    $stmtSelect->execute(['semilla' => $semilla]);
+    $antes = $stmtSelect->fetchAll(PDO::FETCH_ASSOC); // ← fetchAll(PDO::FETCH_ASSOC)
 
     // ─── UPDATE: aplica el incremento ─────────────────────────────────────────
     // TODO: Prepara un UPDATE que calcule:
     //   nuevo_precio = precio * (1 + porcentaje / 100)
     //   WHERE semilla = :semilla
     // Usa sentencia preparada PDO
-    $filasActualizadas = 0; // ← $stmt->rowCount()
+    $stmtUpdate = $pdo->prepare("UPDATE productos SET precio = precio * (1 + :porcentaje / 100) WHERE semilla = :semilla");
+    $stmtUpdate->execute(['porcentaje' => $porcentaje, 'semilla' => $semilla]);
+    $filasActualizadas = $stmtUpdate->rowCount(); // ← $stmt->rowCount()
 
     // ─── DESPUÉS: obtén los precios nuevos ────────────────────────────────────
     // TODO: Mismo SELECT de antes pero ahora los valores son los nuevos
-    $despues = []; // ← fetchAll(PDO::FETCH_ASSOC)
-
+    $stmtSelect->execute(['semilla' => $semilla]);
+    $despues = $stmtSelect->fetchAll(PDO::FETCH_ASSOC); // ← fetchAll(PDO::FETCH_ASSOC)
+   
     ?>
     <!DOCTYPE html>
     <html lang="es">
@@ -49,6 +54,8 @@ try {
     </head>
     <body>
         <h1>Ejercicio 4 — Actualización de Precios</h1>
+        <p>Estudiante: <strong>Benjamin Concepcion</strong></p>
+        <p>Semilla: <strong><?= $semilla ?></strong></p>
         <p>Incremento aplicado: <strong><?= $porcentaje ?>%</strong></p>
         <table>
             <tr><th>Nombre</th><th>Precio anterior</th><th>Precio nuevo</th></tr>
